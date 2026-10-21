@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '2';
+  FT.VER = '3';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Number(n || 0).toLocaleString('ja-JP');
@@ -478,14 +478,30 @@
   const KM = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'j', KeyW: 'j', Space: 'j', KeyZ: 'j', KeyX: 'k', KeyK: 'k', ShiftLeft: 'k', ShiftRight: 'k' };
   addEventListener('keydown', e => { if (!$('game').classList.contains('on') || document.querySelector('.over.on')) return; const k = KM[e.code]; if (k) { S.keys[k] = 1; e.preventDefault(); SND.unlock(); } if (e.code === 'Escape') toTitle(); });
   addEventListener('keyup', e => { const k = KM[e.code]; if (k) S.keys[k] = 0; });
-  addEventListener('blur', () => { S.keys.l = S.keys.r = S.keys.j = S.keys.k = 0; });
-  for (const [id, k] of [['bl', 'l'], ['br', 'r'], ['bj', 'j'], ['bSk', 'k']]) {
-    const b = $(id);
-    const on = e => { e.preventDefault(); S.keys[k] = 1; b.classList.add('on'); SND.unlock(); }, off = e => { e.preventDefault(); S.keys[k] = 0; b.classList.remove('on'); };
-    b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+  addEventListener('blur', () => { S.keys.l = S.keys.r = S.keys.j = S.keys.k = 0; padRelease(); });
+
+  // ---------- スマホのボタン（指を追いかける） ----------
+  //  ・ボタンのまわりの「ゾーン」で指を受ける。すき間を押しても、いちばん近いボタンが効く
+  //  ・押したまま指をすべらせると、すべらせた先のボタンに切りかわる（◀から▶へ、など）
+  //  ・指1本ずつを別々に追いかける（左手で動きながら右手で跳んでも、両方効く）
+  //  ・指がゾーンの外に出ても、離すまでは押したまま
+  function bindPad(zones, keys, onPress) {
+    const ptr = new Map(), cnt = {}, els = {};
+    for (const z of zones) for (const b of z.btns) els[b.k] = b.el;
+    const set = (k, d) => { cnt[k] = Math.max(0, (cnt[k] || 0) + d); keys[k] = cnt[k] > 0 ? 1 : 0; if (els[k]) els[k].classList.toggle('on', keys[k] === 1); };
+    const pick = (z, x, y) => { let best = z.btns[0], bd = Infinity; for (const b of z.btns) { const r = b.el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = (x - cx) * (x - cx) + (y - cy) * (y - cy) * 0.25; if (d < bd) { bd = d; best = b; } } return best.k; };
+    for (const z of zones) {
+      z.el.addEventListener('pointerdown', e => { e.preventDefault(); try { z.el.setPointerCapture(e.pointerId); } catch (er) { } if (ptr.has(e.pointerId)) return; const k = pick(z, e.clientX, e.clientY); ptr.set(e.pointerId, { z, k }); set(k, 1); if (onPress) onPress(); });
+      z.el.addEventListener('pointermove', e => { const p = ptr.get(e.pointerId); if (!p) return; const k = pick(p.z, e.clientX, e.clientY); if (k !== p.k) { set(p.k, -1); p.k = k; set(k, 1); } });
+      const up = e => { const p = ptr.get(e.pointerId); if (!p) return; ptr.delete(e.pointerId); set(p.k, -1); };
+      z.el.addEventListener('pointerup', up); z.el.addEventListener('pointercancel', up); z.el.addEventListener('lostpointercapture', up);
+      z.el.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    return () => { for (const p of ptr.values()) set(p.k, -1); ptr.clear(); };
   }
+  const padRelease = bindPad([{ el: $('zL'), btns: [{ el: $('bl'), k: 'l' }, { el: $('br'), k: 'r' }] }, { el: $('zR'), btns: [{ el: $('bSk'), k: 'k' }, { el: $('bj'), k: 'j' }] }], S.keys, () => SND.unlock());
   addEventListener('contextmenu', e => { if ($('game').classList.contains('on')) e.preventDefault(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) N.flush().catch(() => { }); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { N.flush().catch(() => { }); padRelease(); } });
   // =============================================
   //  投稿
   // =============================================

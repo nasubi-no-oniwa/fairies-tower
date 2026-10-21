@@ -70,8 +70,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 #hStats b { color: var(--ink); }
 .hbtns { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; pointer-events: auto; }
 .hb { appearance: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: rgba(8, 20, 26, .6); font-size: 16px; }
-#pad { display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); background: linear-gradient(transparent, rgba(0, 0, 0, .35)); }
-.btn { appearance: none; border: 1px solid rgba(191, 233, 255, .28); background: rgba(191, 233, 255, .08); border-radius: 14px; height: 62px; font: 700 17px var(--body); touch-action: none; }
+#pad { display: flex; gap: 14px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); background: linear-gradient(transparent, rgba(0, 0, 0, .35)); }
+.zone { display: flex; gap: 8px; flex: 1; padding-top: 18px; margin-top: -18px; touch-action: none; -webkit-touch-callout: none; }
+#zR { flex: 1.25; }
+.zone .btn { flex: 1; pointer-events: none; }
+#zR #bj { flex: 1.5; }
+.btn { appearance: none; border: 1px solid rgba(191, 233, 255, .28); background: rgba(191, 233, 255, .08); border-radius: 14px; height: 68px; font: 700 17px var(--body); touch-action: none; }
 .btn.on { background: rgba(127, 227, 201, .25); border-color: var(--wing); }
 .btn small { display: block; font-size: 10px; font-weight: 400; color: var(--dim); }
 #bSk.off { opacity: .45; }
@@ -160,10 +164,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
       </div>
     </div>
     <div id="pad">
-      <button class="btn" id="bl" aria-label="左へ">◀</button>
-      <button class="btn" id="br" aria-label="右へ">▶</button>
-      <button class="btn" id="bSk" aria-label="技">技<small id="skName"></small></button>
-      <button class="btn" id="bj" aria-label="跳ぶ・飛ぶ">飛ぶ</button>
+      <div class="zone" id="zL"><button class="btn" id="bl" aria-label="左へ">◀</button><button class="btn" id="br" aria-label="右へ">▶</button></div>
+      <div class="zone" id="zR"><button class="btn" id="bSk" aria-label="技">技<small id="skName"></small></button><button class="btn" id="bj" aria-label="跳ぶ・飛ぶ">飛ぶ</button></div>
     </div>
     <div id="wbar"><button class="sub2" id="wReplay">一番乗りの昇り方</button><button class="sub2" id="wFree">自由に見る</button><button class="sub2" id="wPlay">この層を昇る</button></div>
     <div class="keys" id="keys">← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc でタイトルへ</div>
@@ -239,11 +241,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
     <button class="go" id="howClose">わかった</button>
   </div></div>
 </div>
-<script src="js/config.js?v=2"></script>
-<script src="js/engine.js?v=2"></script>
-<script src="js/verify.js?v=2"></script>
-<script src="js/net.js?v=2"></script>
-<script src="js/sound.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/engine.js?v=3"></script>
+<script src="js/verify.js?v=3"></script>
+<script src="js/net.js?v=3"></script>
+<script src="js/sound.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>
