@@ -1,0 +1,10 @@
+// 屍と越えた記録の確かめを、遊びの手を止めずに別の所で計算する
+const V = ((self.location && self.location.search || '').match(/v=([^&]+)/) || [])[1] || '0';
+importScripts('engine.js?v=' + V, 'verify.js?v=' + V);
+onmessage = function (ev) {
+  const d = ev.data, FT = self.FT;
+  try {
+    if (d.type === 'deaths') postMessage({ id: d.id, res: FT.V.verifyDeaths(d.lv, d.items, d.present, d.bad, d.budget, d.ctx) });
+    else if (d.type === 'clear') postMessage({ id: d.id, res: !!FT.V.verifyClear(d.lv, d.c, d.present, d.ctx) });
+  } catch (e) { postMessage({ id: d.id, err: String(e) }); }
+};

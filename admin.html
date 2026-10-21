@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fairies' Tower 管理</title>
+<meta name="robots" content="noindex">
+<style>
+:root { --bg: #0b1418; --panel: #13232a; --ink: #e9f3ef; --dim: #93aaa3; --line: #2a4048; --acc: #7fe3c9; --bad: #ff8a7a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+h1 { margin: 0; font-size: 22px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+h2 { margin: 0; font-size: 16px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button, select, input { font: inherit; color: inherit; background: #0e1c21; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
+button { cursor: pointer; }
+button.warn { border-color: var(--bad); color: var(--bad); }
+button.go { background: var(--acc); color: #062019; border-color: var(--acc); font-weight: 700; }
+input { min-width: 0; flex: 1 1 160px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 6px; border-top: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 400; }
+.note { color: var(--dim); font-size: 12px; }
+#log { white-space: pre-wrap; font-size: 12px; color: var(--dim); max-height: 200px; overflow: auto; }
+.ok { color: var(--acc); } .ng { color: var(--bad); }
+.wide { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fairies' Tower 管理</h1>
+  <section>
+    <h2>1. 管理のかぎで入る（陣営ごと）</h2>
+    <p class="note">Firebase の画面で、それぞれのデータベースの ft_admin/key に入れた文字を使います。3つの陣営で同じでも、別々でもかまいません。</p>
+    <div class="row"><select id="fac"><option value="g">緑の同盟</option><option value="r">赤の軍勢</option><option value="b">青の連合</option></select><input id="key" type="password" placeholder="管理のかぎ"><button class="go" id="login">入る</button></div>
+    <div id="who" class="note"></div>
+  </section>
+  <section>
+    <h2>2. ようす</h2>
+    <div class="row"><button id="ov">読みこむ</button><span class="note" id="ovNote"></span></div>
+    <div class="wide"><table id="ovT"></table></div>
+  </section>
+  <section>
+    <h2>3. 層を見る・直す</h2>
+    <div class="row"><input id="fl" type="number" min="1" max="100" value="1" style="max-width:110px"><button id="flLoad">読みこむ</button><button id="flWatch">ゲームで見る</button></div>
+    <div id="flBody"></div>
+    <div class="row"><button class="warn" id="flReset">この層の屍をぜんぶ消す</button><button id="ckSet">ここまでを確認済みにする</button></div>
+    <p class="note">「確認済み」にした層までは、端末が越えた記録を確かめずに開きます（確かめが重いときに使います）。</p>
+  </section>
+  <section>
+    <h2>4. 終わり</h2>
+    <p class="note">頂上にたどり着いた陣営を確かめてから押してください。3つのデータベースすべてに「終わり」の印を入れます（入れると、だれも書きこめなくなります）。3つの陣営すべてに入っておく必要があります。</p>
+    <div class="row"><select id="win"><option value="g">緑の同盟の勝ち</option><option value="r">赤の軍勢の勝ち</option><option value="b">青の連合の勝ち</option></select><button class="warn" id="endSet">ゲームを終える</button></div>
+  </section>
+  <section><h2>記録</h2><div id="log"></div></section>
+</main>
+<script src="js/config.js?v=1"></script>
+<script src="js/engine.js?v=1"></script>
+<script src="js/verify.js?v=1"></script>
+<script src="js/net.js?v=1"></script>
+<script>
+(function () {
+  const FT = window.FT, N = FT.NET, V = FT.V, $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const NAMES = { g: '緑の同盟', r: '赤の軍勢', b: '青の連合' };
+  const log = m => { $('log').textContent = new Date().toLocaleTimeString('ja-JP') + '　' + m + '\n' + $('log').textContent; };
+  const fac = () => $('fac').value;
+  const admins = {};
+  let floors = null; fetch('data/floors.json').then(r => r.json()).then(v => floors = v);
+  $('login').onclick = async () => {
+    const f = fac();
+    if (!N.ready(f)) { log(NAMES[f] + '：つなぎ先（js/config.js）が入っていません'); return; }
+    try { const uid = await N.adminLogin($('key').value, f); admins[f] = uid; $('who').textContent = '入っている陣営：' + Object.keys(admins).map(k => NAMES[k]).join('・'); log(NAMES[f] + 'に入りました'); }
+    catch (e) { log(NAMES[f] + '：入れませんでした（かぎがちがうか、ルールが入っていません）'); }
+  };
+  $('ov').onclick = async () => {
+    const f = fac(); N.fac = f;
+    try {
+      const [open, stat, ckpt, end] = await Promise.all([N.rest('ft_open', null, f), N.rest('ft_stat', null, f), N.rest('ft_ckpt', null, f), N.rest('ft_end', null, f)]);
+      const o = open || {}, s = stat || {};
+      let top = 0; for (const k in o) if (o[k] && +k > top) top = +k;
+      $('ovNote').textContent = `${NAMES[f]}：開いた一番上 第${Math.min(100, top + 1)}層　確認済み 第${ckpt || 0}層まで` + (end ? `　終わり（${NAMES[end.w]}の勝ち）` : '');
+      const rows = []; for (let i = Math.min(100, top + 1); i >= 1; i--) { const st = s[i] || {}, op = o[i]; rows.push(`<tr><td>第${i}層</td><td>${floors ? esc(floors[i - 1].name) : ''}</td><td>死 ${st.d || 0}</td><td>越 ${st.c || 0}</td><td>${op ? esc(op.n) + (op.x ? ' @' + esc(op.x) : '') : ''}</td></tr>`); }
+      $('ovT').innerHTML = '<tr><th>層</th><th>名前</th><th>死んだ数</th><th>越えた数</th><th>一番乗り（印）</th></tr>' + rows.join('');
+    } catch (e) { log('読みこめませんでした'); }
+  };
+  async function loadFloor() {
+    const f = fac(), fl = +$('fl').value; N.fac = f;
+    $('flBody').innerHTML = '<p class="note">読みこみ中…</p>';
+    try {
+      const [by, clears] = await Promise.all([N.dlog(fl, f), N.rest('ft_clear/' + fl, { orderBy: 't' }, f)]);
+      const lv = Object.assign({}, floors[fl - 1]);
+      lv._ctx = { maxB: 10, door: true };
+      const cells = await N.loadCells(lv), present = N.present(lv);
+      const list = Object.entries(clears || {}).map(([id, c]) => Object.assign({ id }, c)).sort((a, b) => a.t - b.t);
+      const vres = []; for (const c of list.slice(0, 40)) vres.push(V.verifyClear(lv, c, present, { maxB: 10, door: true }));
+      let h = `<p>確かめた屍 ${Object.keys(lv._F.st.P).length} か所（見えている屍 ${cells.size} か所）${N.more(lv) ? '　まだ確かめの途中' : ''}</p>`;
+      h += '<h3 style="font-size:14px;margin:8px 0 4px">屍を置いた人（多い順）</h3><div class="wide"><table><tr><th>匿名ID</th><th>屍</th><th>だめな記録</th><th></th></tr>' + by.slice(0, 30).map((g, i) => `<tr><td>${esc(g.u.slice(0, 10))}…</td><td>${g.n}</td><td class="${(lv._F.st.bad[g.u] || 0) >= 3 ? 'ng' : ''}">${lv._F.st.bad[g.u] || 0}</td><td><button class="warn" data-rm="${i}">この人の屍を取り除く</button></td></tr>`).join('') + '</table></div>';
+      h += '<h3 style="font-size:14px;margin:8px 0 4px">越えた記録（古い順）</h3><div class="wide"><table><tr><th>名前</th><th>時刻</th><th>確かめ</th><th></th></tr>' + list.slice(0, 40).map((c, i) => `<tr><td>${esc(c.n)}${c.x ? ' @' + esc(c.x) : ''}</td><td>${new Date(c.t).toLocaleString('ja-JP')}</td><td class="${vres[i] ? 'ok' : 'ng'}">${vres[i] ? '本物' : 'にせ'}</td><td><button data-blank="${esc(c.id)}">名前を消す</button> <button class="warn" data-purge="${esc(c.id)}">記録を消す</button></td></tr>`).join('') + '</table></div>';
+      $('flBody').innerHTML = h;
+      for (const b of $('flBody').querySelectorAll('[data-rm]')) b.onclick = async () => { const g = by[+b.dataset.rm]; if (!confirm(`この人の屍 ${g.n} 人分を取り除きますか？`)) return; try { const n = await N.removeBy(fl, g, f); log(`第${fl}層：${n}か所から取り除きました`); loadFloor(); } catch (e) { log('取り除けませんでした（管理のかぎで入っていますか）'); } };
+      for (const b of $('flBody').querySelectorAll('[data-blank]')) b.onclick = async () => { try { await N.blankName(fl, b.dataset.blank, f); log(`第${fl}層：名前を「名無し」にしました`); loadFloor(); } catch (e) { log('消せませんでした'); } };
+      for (const b of $('flBody').querySelectorAll('[data-purge]')) b.onclick = async () => { if (!confirm('この越えた記録を消しますか？（にせの記録だけ消してください）')) return; const op = await N.rest('ft_open/' + fl, null, f).catch(() => null); try { await N.purge(fl, [b.dataset.purge], op && op.id === b.dataset.purge, f); log(`第${fl}層：記録を消しました`); loadFloor(); } catch (e) { log('消せませんでした'); } };
+    } catch (e) { $('flBody').innerHTML = '<p class="note">読みこめませんでした</p>'; }
+  }
+  $('flLoad').onclick = loadFloor;
+  $('flWatch').onclick = () => open('index.html', '_blank');
+  $('flReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の屍を、ぜんぶ消しますか？（もとに戻せません）`)) return; try { await N.resetFloor(fl, f); log(`第${fl}層の屍を消しました`); } catch (e) { log('消せませんでした'); } };
+  $('ckSet').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層までを確認済みにしますか？`)) return; try { await N.setCkpt(fl, f); log(`第${fl}層までを確認済みにしました`); } catch (e) { log('書きこめませんでした'); } };
+  $('endSet').onclick = async () => {
+    const w = $('win').value, fs = ['g', 'r', 'b'].filter(f => N.ready(f));
+    const miss = fs.filter(f => !admins[f]); if (miss.length) { log('まだ入っていない陣営があります：' + miss.map(k => NAMES[k]).join('・')); return; }
+    if (!confirm(`${NAMES[w]}の勝ちで、ゲームを終えますか？（もとに戻せません）`)) return;
+    for (const f of fs) { try { await N.setEnd(w, f); log(NAMES[f] + 'に終わりの印を入れました'); } catch (e) { log(NAMES[f] + '：書きこめませんでした'); } }
+  };
+})();
+</script>
+</body>
+</html>

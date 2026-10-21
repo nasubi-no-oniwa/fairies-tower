@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Fairies' Tower</title>
+<meta name="description" content="3つの陣営に分かれて、死ぬと残る屍を足場に、100層の世界樹のてっぺんを目指す。">
+<meta property="og:title" content="Fairies' Tower">
+<meta property="og:description" content="3つの陣営に分かれて、死ぬと残る屍を足場に、100層の世界樹のてっぺんを目指す。">
+<meta name="theme-color" content="#08141a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308141a'/%3E%3Cpath d='M32 58V20' stroke='%234a3324' stroke-width='8'/%3E%3Cellipse cx='22' cy='22' rx='12' ry='6' fill='%237fe3c9' transform='rotate(-30 22 22)'/%3E%3Cellipse cx='42' cy='22' rx='12' ry='6' fill='%237fe3c9' transform='rotate(30 42 22)'/%3E%3Ccircle cx='32' cy='14' r='5' fill='%23f3e6d2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* 夜の世界樹の中。暗い一つの世界に決めているので、明るい表示は作らない */
+:root {
+  --night: #08141a; --night2: #0d2a2e; --bark: #2a1d16; --glow: #bfe9ff; --wing: #7fe3c9; --ember: #ff9a5c;
+  --ink: #e9f3ef; --dim: #93aaa3; --panel: rgba(8, 20, 26, .92); --line: rgba(191, 233, 255, .22);
+  --g: #6fdc8c; --r: #ff6b5a; --b: #5ab0ff;
+  --display: "Kaisei Decol", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+#wrap { position: relative; height: 100%; max-width: 560px; margin: 0 auto; background: var(--night); }
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+.screen.on { display: flex; }
+/* ---------- タイトル ---------- */
+#title { overflow-y: auto; overscroll-behavior: contain; padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); gap: 12px; background: radial-gradient(120% 60% at 50% 0%, #12343a 0%, var(--night) 60%); }
+#title h1 { margin: 6px 0 0; font-family: var(--display); font-weight: 700; font-size: 34px; letter-spacing: .06em; text-align: center; text-shadow: 0 0 18px rgba(127, 227, 201, .35); }
+#title .lead { margin: 0; text-align: center; font-size: 13px; color: var(--dim); line-height: 1.6; text-wrap: balance; }
+#tree { width: 100%; height: 300px; display: block; flex: none; border-radius: 14px; background: linear-gradient(#0b2228, #061015); border: 1px solid var(--line); }
+#endBanner { border: 1px solid #ffe7a3; background: rgba(255, 231, 163, .08); border-radius: 12px; padding: 12px 14px; text-align: center; line-height: 1.7; font-size: 14px; }
+#endBanner b { font-family: var(--display); font-size: 18px; }
+.status { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; padding: 12px 14px; border-radius: 12px; background: rgba(191, 233, 255, .05); border: 1px solid var(--line); }
+.status .big { font-family: var(--display); font-size: 22px; }
+.status .big small { font-family: var(--body); font-size: 13px; color: var(--dim); margin-left: 6px; }
+.status .sub { grid-column: 1 / -1; font-size: 12px; color: var(--dim); line-height: 1.6; overflow-wrap: anywhere; }
+.status .num { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--dim); text-align: right; }
+.status .num b { color: var(--ink); font-size: 15px; }
+.pick h2 { margin: 0 0 8px; font-size: 14px; color: var(--dim); font-weight: 700; letter-spacing: .04em; }
+.facs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fac { display: grid; gap: 6px; align-content: start; }
+.fac h3 { margin: 0; font-size: 13px; text-align: center; font-family: var(--display); letter-spacing: .04em; padding: 4px 0; border-bottom: 2px solid currentColor; }
+.sp { appearance: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: rgba(191, 233, 255, .04); font-size: 13px; text-align: left; line-height: 1.25; }
+.sp i { flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255, 255, 255, .15); }
+.sp.on { border-color: currentColor; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px currentColor; }
+.spinfo { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(191, 233, 255, .05); font-size: 13px; line-height: 1.7; color: #cfe0da; }
+.spinfo b { color: var(--ink); }
+.go { appearance: none; border: 0; border-radius: 14px; min-height: 54px; padding: 12px 18px; font: 700 18px var(--body); background: var(--wing); color: #062019; box-shadow: 0 6px 20px rgba(127, 227, 201, .25); }
+.go:disabled { opacity: .5; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sub2 { appearance: none; flex: 1 1 auto; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 700 14px var(--body); background: transparent; }
+.foot { text-align: center; font-size: 11px; color: var(--dim); line-height: 1.7; }
+.foot a { color: var(--dim); }
+/* ---------- 遊ぶ ---------- */
+#game { background: var(--night); }
+#cv { flex: 1; width: 100%; min-height: 0; display: block; touch-action: none; }
+#hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: max(10px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+#hFloor { font-family: var(--display); font-size: 19px; letter-spacing: .05em; text-shadow: 0 1px 6px #000; }
+#hFloor small { display: block; font-family: var(--body); font-size: 12px; color: var(--dim); letter-spacing: .03em; }
+#hName { font-size: 12px; margin-top: 2px; text-shadow: 0 1px 4px #000; }
+#hStats { text-align: right; font-size: 12px; color: var(--dim); line-height: 1.5; text-shadow: 0 1px 4px #000; font-variant-numeric: tabular-nums; }
+#hStats b { color: var(--ink); }
+.hbtns { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; pointer-events: auto; }
+.hb { appearance: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: rgba(8, 20, 26, .6); font-size: 16px; }
+#pad { display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); background: linear-gradient(transparent, rgba(0, 0, 0, .35)); }
+.btn { appearance: none; border: 1px solid rgba(191, 233, 255, .28); background: rgba(191, 233, 255, .08); border-radius: 14px; height: 62px; font: 700 17px var(--body); touch-action: none; }
+.btn.on { background: rgba(127, 227, 201, .25); border-color: var(--wing); }
+.btn small { display: block; font-size: 10px; font-weight: 400; color: var(--dim); }
+#bSk.off { opacity: .45; }
+.keys { display: none; text-align: center; font-size: 12px; color: var(--dim); padding: 8px 12px 12px; }
+@media (hover: hover) and (pointer: fine) { #pad { display: none; } .keys { display: block; } }
+#toast { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); padding: 10px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-size: 15px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s; width: max-content; max-width: calc(100% - 40px); overflow-wrap: anywhere; z-index: 5; }
+#toast small { display: block; font-size: 12px; color: var(--dim); margin-top: 2px; }
+#toast.in { opacity: 1; }
+#loading { position: absolute; inset: 0; display: none; place-items: center; background: rgba(4, 10, 13, .7); font-size: 14px; color: var(--dim); }
+#loading.on { display: grid; }
+/* ---------- 重ねる画面 ---------- */
+.over { position: absolute; inset: 0; display: none; place-items: center; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); background: rgba(4, 10, 13, .76); z-index: 10; }
+.over.on { display: grid; }
+.card { width: 100%; max-width: 420px; max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 18px 16px; display: grid; gap: 12px; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 23px; letter-spacing: .06em; text-wrap: balance; }
+.card p { margin: 0; line-height: 1.75; font-size: 14px; color: #cfe0da; overflow-wrap: anywhere; }
+.card ul, .card ol { margin: 0; padding-left: 1.2em; line-height: 1.75; font-size: 14px; color: #cfe0da; }
+.card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+.card td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+.card td:first-child { white-space: nowrap; font-weight: 700; }
+.card .note { font-size: 12px; color: var(--dim); }
+.card input, .card textarea { width: 100%; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3); color: var(--ink); padding: 10px 12px; font: 15px var(--body); -webkit-user-select: text; user-select: text; }
+.card textarea { min-height: 70px; resize: vertical; font-size: 13px; }
+#clBig { font-family: var(--display); font-size: 24px; line-height: 1.45; text-align: center; }
+#clBig b { font-size: 30px; }
+#shImg { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.names { list-style: none; padding: 0 !important; display: grid; gap: 6px; }
+.names li { padding: 8px 10px; border-radius: 10px; background: rgba(191, 233, 255, .05); font-size: 13px; }
+.names li small { display: block; color: var(--dim); font-size: 11px; }
+.tabs { display: flex; gap: 6px; }
+.tabs button { flex: 1; appearance: none; border: 1px solid var(--line); background: transparent; border-radius: 10px; min-height: 40px; font-size: 13px; }
+.tabs button.on { background: rgba(127, 227, 201, .18); border-color: var(--wing); }
+#flList { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+#flList button { appearance: none; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: rgba(191, 233, 255, .05); font-size: 13px; font-variant-numeric: tabular-nums; }
+#flList button.now { border-color: var(--wing); background: rgba(127, 227, 201, .18); }
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <!-- ========== タイトル ========== -->
+  <section class="screen on" id="title">
+    <h1>Fairies' Tower</h1>
+    <p class="lead">3つの陣営に分かれて、100層の世界樹を昇る。<br>倒れた妖精は浮かぶ屍になって、仲間の足場になる。</p>
+    <canvas id="tree" aria-label="世界樹と、3つの陣営がどこまで昇ったか"></canvas>
+    <div id="endBanner" hidden></div>
+    <div class="status">
+      <div class="big" id="tLatest">第1層<small></small></div>
+      <div class="num">死んだ数 <b id="tDead">0</b></div>
+      <div class="sub" id="tSub"></div>
+    </div>
+    <div class="pick">
+      <h2>妖精をえらぶ（いつでも変えられる）</h2>
+      <div class="facs" id="facs"></div>
+      <div class="spinfo" id="spInfo"></div>
+    </div>
+    <button class="go" id="bGo">昇りはじめる</button>
+    <div class="row">
+      <button class="sub2" id="bFloors">層をえらぶ</button>
+      <button class="sub2" id="bStone">碑</button>
+      <button class="sub2" id="bHow">あそびかた</button>
+    </div>
+    <div class="row">
+      <button class="sub2" id="bShare">Xに投稿</button>
+      <button class="sub2" id="bCode">引き継ぎ</button>
+      <button class="sub2" id="bSnd">♪ 音あり</button>
+    </div>
+    <p class="foot" id="foot">なすびのお庭</p>
+  </section>
+
+  <!-- ========== 遊ぶ ========== -->
+  <section class="screen" id="game">
+    <canvas id="cv" aria-label="世界樹の中を昇るゲーム画面"></canvas>
+    <div id="hud">
+      <div>
+        <div id="hFloor">第1層<small></small></div>
+        <div id="hName"></div>
+      </div>
+      <div>
+        <div id="hStats">この層の死 <b id="hDead">0</b><br><span id="hFac"></span></div>
+        <div class="hbtns"><button class="hb" id="gShare" aria-label="Xに投稿">𝕏</button><button class="hb" id="gHow" aria-label="あそびかた">？</button><button class="hb" id="gBack" aria-label="タイトルへ">✕</button></div>
+      </div>
+    </div>
+    <div id="pad">
+      <button class="btn" id="bl" aria-label="左へ">◀</button>
+      <button class="btn" id="br" aria-label="右へ">▶</button>
+      <button class="btn" id="bSk" aria-label="技">技<small id="skName"></small></button>
+      <button class="btn" id="bj" aria-label="跳ぶ・飛ぶ">飛ぶ</button>
+    </div>
+    <div class="keys" id="keys">← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc でタイトルへ</div>
+    <div id="toast"></div>
+    <div id="loading">屍を読みこんでいます…</div>
+  </section>
+
+  <!-- ========== 越えた ========== -->
+  <div class="over" id="oClear"><div class="card">
+    <div id="clBig"></div>
+    <p id="clSub" style="text-align:center"></p>
+    <p id="clMsg" class="note" style="text-align:center"></p>
+    <div id="clFirst" hidden>
+      <p>碑に、XのIDを添えられます（なくてもよい）。</p>
+      <input id="clX" placeholder="XのID（@なし）" autocomplete="off" inputmode="latin">
+      <div class="row" style="margin-top:8px"><button class="sub2" id="clXsave">刻む</button><button class="sub2" id="clXskip">名前だけ</button></div>
+    </div>
+    <button class="go" id="clNext">次の層へ</button>
+    <div class="row"><button class="sub2" id="clShare">Xに投稿</button><button class="sub2" id="clTitle">タイトルへ</button></div>
+  </div></div>
+
+  <!-- ========== 投稿 ========== -->
+  <div class="over" id="oShare"><div class="card">
+    <h2>Xに投稿</h2>
+    <canvas id="shImg" width="1200" height="630" aria-label="投稿する絵"></canvas>
+    <p class="note">絵は「絵を保存」で端末に保存して、投稿に添えてください。</p>
+    <textarea id="shText" readonly></textarea>
+    <button class="go" id="shPost">Xを開く</button>
+    <div class="row"><button class="sub2" id="shSave">絵を保存</button><button class="sub2" id="shClose">閉じる</button></div>
+  </div></div>
+
+  <!-- ========== 碑 ========== -->
+  <div class="over" id="oStone"><div class="card">
+    <h2>碑</h2>
+    <div class="tabs"><button data-t="first" class="on">各層の一番乗り</button><button data-t="summit">頂の碑</button></div>
+    <div id="stBody"></div>
+    <button class="sub2" id="stClose">閉じる</button>
+  </div></div>
+
+  <!-- ========== 層をえらぶ ========== -->
+  <div class="over" id="oFloors"><div class="card">
+    <h2>層をえらぶ</h2>
+    <p class="note">開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。</p>
+    <div id="flList"></div>
+    <button class="sub2" id="flClose">閉じる</button>
+  </div></div>
+
+  <!-- ========== 引き継ぎ ========== -->
+  <div class="over" id="oCode"><div class="card">
+    <h2>引き継ぎ</h2>
+    <p>別の端末でも同じ記録（えらんだ妖精・いちばん高く昇った層・死んだ数）で遊べます。この端末のコードを、別の端末に入れてください。</p>
+    <input id="cdMine" readonly aria-label="この端末のコード">
+    <button class="sub2" id="cdCopy">コードをうつす</button>
+    <p class="note">別の端末のコードを入れる</p>
+    <input id="cdIn" placeholder="コードをはりつける" autocomplete="off">
+    <div class="row"><button class="sub2" id="cdLoad">読みこむ</button><button class="sub2" id="cdClose">閉じる</button></div>
+  </div></div>
+
+  <!-- ========== あそびかた ========== -->
+  <div class="over" id="oHow"><div class="card">
+    <h2>あそびかた</h2>
+    <ul>
+      <li>飛ぶボタンを押し続けると、翅で飛べる。飛べるのは少しの間だけ</li>
+      <li>空中で翅が尽きると、その場で力尽きる。倒れた妖精は屍になって、宙に浮かんだまま残る</li>
+      <li>枝や屍の上に立つと、翅がもとに戻る。屍には、飛ぶのをやめて近づけばつかまれる</li>
+      <li>枝も屍も、下や横からはすり抜けられる。近くで倒れると屍が合流して、足場が広がる</li>
+      <li>屍は同じ陣営の仲間とだけ共有される。いちばん上の出口に着くと、次の層が開く</li>
+      <li>最初に第100層の頂にたどり着いた陣営の勝ち。ゲームはそこで終わる</li>
+    </ul>
+    <table id="howSp"></table>
+    <p class="note">遅れている陣営ほど、翅が少し長くもつ（追い上げ）。頂上の扉は、ほかの陣営のどれかが第80層まで来ると開く。</p>
+    <button class="go" id="howClose">わかった</button>
+  </div></div>
+</div>
+<script src="js/config.js?v=1"></script>
+<script src="js/engine.js?v=1"></script>
+<script src="js/verify.js?v=1"></script>
+<script src="js/net.js?v=1"></script>
+<script src="js/sound.js?v=1"></script>
+<script src="js/main.js?v=1"></script>
+</body>
+</html>
