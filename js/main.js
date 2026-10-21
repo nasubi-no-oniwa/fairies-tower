@@ -497,7 +497,11 @@
       z.el.addEventListener('pointerup', up); z.el.addEventListener('pointercancel', up); z.el.addEventListener('lostpointercapture', up);
       z.el.addEventListener('contextmenu', e => e.preventDefault());
     }
-    return () => { for (const p of ptr.values()) set(p.k, -1); ptr.clear(); };
+    const release = () => { for (const p of ptr.values()) set(p.k, -1); ptr.clear(); for (const k in cnt) if (cnt[k]) { cnt[k] = 0; keys[k] = 0; if (els[k]) els[k].classList.remove('on'); } };
+    // 守り：画面からすべての指が離れたら、どのボタンも必ず離したことにする（「離した」が届かなかったときの押しっぱなしを防ぐ）
+    const allUp = e => { if (!e.touches || e.touches.length === 0) release(); };
+    document.addEventListener('touchend', allUp, true); document.addEventListener('touchcancel', allUp, true);
+    return release;
   }
   const padRelease = bindPad([{ el: $('zL'), btns: [{ el: $('bl'), k: 'l' }, { el: $('br'), k: 'r' }] }, { el: $('zR'), btns: [{ el: $('bSk'), k: 'k' }, { el: $('bj'), k: 'j' }] }], S.keys, () => SND.unlock());
   addEventListener('contextmenu', e => { if ($('game').classList.contains('on')) e.preventDefault(); });
