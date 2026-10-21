@@ -46,7 +46,7 @@ th { color: var(--dim); font-weight: 400; }
     <h2>3. 層を見る・直す</h2>
     <div class="row"><input id="fl" type="number" min="1" max="100" value="1" style="max-width:110px"><button id="flLoad">読みこむ</button><button id="flWatch">ゲームで見る</button></div>
     <div id="flBody"></div>
-    <div class="row"><button class="warn" id="flReset">この層の屍をぜんぶ消す</button><button id="ckSet">ここまでを確認済みにする</button></div>
+    <div class="row"><button class="warn" id="flReset">この層の屍をぜんぶ消す</button><button class="warn" id="stReset">この層の数（死んだ数・越えた数）を0にする</button><button id="ckSet">ここまでを確認済みにする</button></div>
     <p class="note">「確認済み」にした層までは、端末が越えた記録を確かめずに開きます（確かめが重いときに使います）。</p>
   </section>
   <section>
@@ -108,6 +108,7 @@ th { color: var(--dim); font-weight: 400; }
   $('flLoad').onclick = loadFloor;
   $('flWatch').onclick = () => open('index.html', '_blank');
   $('flReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の屍を、ぜんぶ消しますか？（もとに戻せません）`)) return; try { await N.resetFloor(fl, f); log(`第${fl}層の屍を消しました`); } catch (e) { log('消せませんでした'); } };
+  $('stReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の、死んだ数・越えた数・一番上まで行った割合を0にしますか？（もとに戻せません）`)) return; try { await N.update({ ['ft_stat/' + fl]: null }, f); log(`第${fl}層の数を0にしました`); } catch (e) { log('消せませんでした（管理のかぎで入っていますか）'); } };
   $('ckSet').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層までを確認済みにしますか？`)) return; try { await N.setCkpt(fl, f); log(`第${fl}層までを確認済みにしました`); } catch (e) { log('書きこめませんでした'); } };
   $('endSet').onclick = async () => {
     const w = $('win').value, fs = ['g', 'r', 'b'].filter(f => N.ready(f));
