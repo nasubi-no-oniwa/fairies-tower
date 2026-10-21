@@ -112,20 +112,25 @@
     const idx = await N.snapIndex();
     // ゲームが終わったあとは、まとめだけを読む（データベースは読まない）
     N.frozen = !!(idx && idx.end);
-    if (N.frozen) { out.open = idx.open || {}; out.stat = idx.stat || {}; out.okSnap = idx.ok || {}; out.ckpt = idx.ckpt; out.tops = Object.assign({}, idx.tops || {}); out.ends = { [idx.end.w]: idx.end }; out.snapAt = idx.at; return out; }
+    if (N.frozen) { out.open = idx.open || {}; out.stat = idx.stat || {}; out.okSnap = idx.ok || {}; out.ckpt = idx.ckpt; out.tops = Object.assign({}, idx.vtops || idx.tops || {}); out.ends = { [idx.end.w]: idx.end }; out.snapAt = idx.at; return out; }
     if (idx) { out.open = idx.open || {}; out.stat = idx.stat || {}; out.okSnap = idx.ok || {}; out.snapAt = idx.at || 0; out.ckpt = idx.ckpt == null ? null : idx.ckpt; }
+    // 3つの陣営の高さ：GitHub のまとめで確かめ済みの高さだけを使う（にせの「開いた」で高く見せられないように）
+    //  自分の陣営は、この端末で確かめた分も足す（main.js）。終わりの印だけはデータベースから読む（とても軽い）
     const jobs = N.FACS.map(async F => {
+      const ix = F === N.fac ? idx : await N.snapIndex(F);
+      out.tops[F] = ix && ix.vtop >= 1 ? ix.vtop : 1;
       if (!N.ready(F)) return;
-      // 開いた層の番号だけ読む（中身は読まない。とても軽い）
-      const [op, end] = await Promise.all([rest('ft_open', { shallow: true }, F).catch(() => null), rest('ft_end', null, F).catch(() => null)]);
-      if (op === null) out.tops[F] = 1;
-      else if (op && typeof op === 'object') { let m = 0; for (const k in op) if (+k > m && +k <= 100) m = +k; out.tops[F] = Math.min(101, m + 1); }
+      const end = await rest('ft_end', null, F).catch(() => null);
       if (end && typeof end === 'object') out.ends[F] = end;
     });
+    // 自分の陣営：確かめる前の「開いた」の一番上（下から順に確かめるために使う。見せる高さには使わない）
+    const own = N.ready() ? rest('ft_open', { shallow: true }).catch(() => null) : Promise.resolve(null);
     await Promise.all(jobs);
+    const op = await own; out.rawTop = 1;
+    if (op && typeof op === 'object') { let m = 0; for (const k in op) if (+k > m && +k <= 100) m = +k; out.rawTop = Math.min(101, m + 1); }
     if (N.ready()) {
       // まとめより上の「開いた」だけ読む
-      const top = out.tops[N.fac] || 1, from = Math.max(1, Math.min(top, Object.keys(out.okSnap).length ? Math.max(...Object.keys(out.okSnap).map(Number)) : 0));
+      const top = out.rawTop || 1, from = Math.max(1, Math.min(top, Object.keys(out.okSnap).length ? Math.max(...Object.keys(out.okSnap).map(Number)) : 0));
       const ck = await rest('ft_ckpt').catch(() => null); if (typeof ck === 'number') out.ckpt = ck;
       const need = []; for (let f = from; f < top && f <= 100; f++) if (!out.okSnap[f]) need.push(f);
       if (top >= 100) need.push(100);

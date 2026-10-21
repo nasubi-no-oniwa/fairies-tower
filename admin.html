@@ -56,10 +56,10 @@ th { color: var(--dim); font-weight: 400; }
   </section>
   <section><h2>記録</h2><div id="log"></div></section>
 </main>
-<script src="js/config.js?v=1"></script>
-<script src="js/engine.js?v=1"></script>
-<script src="js/verify.js?v=1"></script>
-<script src="js/net.js?v=1"></script>
+<script src="js/config.js?v=2"></script>
+<script src="js/engine.js?v=2"></script>
+<script src="js/verify.js?v=2"></script>
+<script src="js/net.js?v=2"></script>
 <script>
 (function () {
   const FT = window.FT, N = FT.NET, V = FT.V, $ = id => document.getElementById(id);
@@ -106,7 +106,7 @@ th { color: var(--dim); font-weight: 400; }
     } catch (e) { $('flBody').innerHTML = '<p class="note">読みこめませんでした</p>'; }
   }
   $('flLoad').onclick = loadFloor;
-  $('flWatch').onclick = () => open('index.html', '_blank');
+  $('flWatch').onclick = () => open('index.html?watch=' + (+$('fl').value) + '&fac=' + fac(), '_blank');
   $('flReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の屍を、ぜんぶ消しますか？（もとに戻せません）`)) return; try { await N.resetFloor(fl, f); log(`第${fl}層の屍を消しました`); } catch (e) { log('消せませんでした'); } };
   $('stReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の、死んだ数・越えた数・一番上まで行った割合を0にしますか？（もとに戻せません）`)) return; try { await N.update({ ['ft_stat/' + fl]: null }, f); log(`第${fl}層の数を0にしました`); } catch (e) { log('消せませんでした（管理のかぎで入っていますか）'); } };
   $('ckSet').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層までを確認済みにしますか？`)) return; try { await N.setCkpt(fl, f); log(`第${fl}層までを確認済みにしました`); } catch (e) { log('書きこめませんでした'); } };

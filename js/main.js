@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '1';
+  FT.VER = '2';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Number(n || 0).toLocaleString('ja-JP');
@@ -50,6 +50,8 @@
   const leadTop = () => Math.max(1, ...N.FACS.map(f => Math.min(100, W.tops[f] || 1)));
   const otherTops = () => N.FACS.filter(f => f !== N.fac).map(f => Math.min(100, W.tops[f] || 1));
   const ctxFor = f => ({ maxB: V.bonusFor(f, leadTop()), door: f === 100 && V.doorOpen(otherTops()) });
+  // ほかの人の記録を確かめるとき：見ている高さが少し古い人もいるので、追い上げの上限に2層ぶん余裕をもたせる
+  const vctxFor = f => ({ maxB: V.bonusFor(f, leadTop() + 2), door: f === 100 && V.doorOpen(otherTops()), play: ctxFor(f) });
   const ended = () => { for (const f of N.FACS) if (W.ends[f]) return W.ends[f]; return null; };
   let refAt = 0, refP = null;
   async function refresh(force) {
@@ -74,7 +76,7 @@
         const f = computeLatest(); if (W.done) break;
         const o = W.open[f]; if (!o) break;
         const ng = (ME.ng[fac] || {})[f]; if (ng && ng.t === o.t && Date.now() - ng.at < 300000) break;
-        const lv = getLevel(f); lv._ctx = ctxFor(f);
+        const lv = getLevel(f); lv._ctx = vctxFor(f);
         let c = null;
         try { await N.loadCells(lv); c = await N.firstClear(lv); } catch (e) { break; }
         if (fac !== N.fac || W.open[f] !== o) continue;
@@ -187,18 +189,22 @@
   addEventListener('resize', () => { resize(); if ($('title').classList.contains('on')) drawTree($('tree'), 1); });
   const S = { lv: null, cor: new Map(), run: null, rec: null, name: '', keys: { l: 0, r: 0, j: 0, k: 0 }, acc: 0, deadT: 0, cam: 0, fx: [], shake: 0, paused: false, deathsHere: 0, nextCor: null, startCor: '', opt: null, mine: new Map(), syncAt: 0 };
   FT.S = S;
-  async function startFloor(f) {
-    if (ME.sp === null || ME.sp === undefined) return;
-    SND.unlock(); N.warm();
+  async function startFloor(f, opt) {
+    opt = opt || {};
+    if (!opt.watch && (ME.sp === null || ME.sp === undefined)) return;
+    SND.unlock(); if (!opt.watch) N.warm();
     await getFloors();
     show('game'); resize(); $('loading').classList.add('on');
-    const lv = getLevel(f); lv._ctx = ctxFor(f);
+    const lv = getLevel(f); lv._ctx = vctxFor(f);
     let cor = new Map();
     if (OFFLINE) cor = localCor(f);
     else { try { cor = await N.loadCells(lv); } catch (e) { toast('みんなの屍を読みこめませんでした', 'この端末の分だけで遊べます', 2600); } }
     $('loading').classList.remove('on');
     S.lv = lv; S.cor = cor; S.nextCor = null; S.mine = new Map(); S.deathsHere = 0; S.fx = [];
     S.latest = f === W.latest && !W.done;
+    S.watch = !!opt.watch; S.replay = null; S.follow = false;
+    $('game').classList.toggle('watching', S.watch);
+    if (S.watch) { startWatch(lv); return; }
     const F = FT.FAC[facOf(ME.sp)], sp = FT.SP[ME.sp];
     $('hFloor').innerHTML = `第${f}層<small>${esc(lv.name)}</small>`;
     $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>・<span style="color:${sp.color === '#3a3f4a' ? '#9aa3b4' : sp.color}">${esc(sp.name)}</span>`;
@@ -214,7 +220,7 @@
   function spawn(first) {
     if (S.nextCor) { S.cor = S.nextCor; S.nextCor = null; }
     S.name = newName();
-    const c = S.lv._ctx || ctxFor(S.lv.f);
+    const c = ctxFor(S.lv.f);
     S.opt = { sp: ME.sp, b: c.maxB, door: OFFLINE ? true : c.door };
     S.run = new FT.Run(S.lv, S.cor, S.opt);
     S.rec = new FT.Rec(); S.acc = 0; S.deadT = 0;
@@ -231,6 +237,7 @@
     if (!S.lv || !$('game').classList.contains('on')) { lastNow = now; return; }
     let dt = Math.min(0.1, (now - lastNow) / 1000 || 0); lastNow = now;
     if (S.paused) dt = 0;
+    if (S.watch) { watchStep(dt); draw(); return; }
     const run = S.run;
     if (run && !run.over) {
       S.acc += dt;
@@ -345,12 +352,12 @@
   // =============================================
   //  描く
   // =============================================
-  const facColor = () => FT.FAC[facOf(ME.sp)].color;
+  const facColor = () => FT.FAC[Math.max(0, N.FACS.indexOf(N.fac))].color;
   function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
   let dark = null;
   function draw() {
-    const lv = S.lv, run = S.run; if (!lv || !run) return;
-    const p = run.p, s = run.t * FT.DT, cam = S.cam, fcol = facColor(), sp = ME.sp;
+    const lv = S.lv, run = S.watch && S.replay ? S.replay.run : S.run; if (!lv || !run) return;
+    const p = run.p, s = run.t * FT.DT, cam = S.cam, fcol = facColor(), sp = S.watch ? (S.replay ? run.sp : -1) : ME.sp, seeAll = S.watch;
     g.setTransform(1, 0, 0, 1, 0, 0);
     const grd = g.createLinearGradient(0, 0, 0, cv.height); grd.addColorStop(0, '#0d2a2e'); grd.addColorStop(1, '#050c10'); g.fillStyle = grd; g.fillRect(0, 0, cv.width, cv.height);
     let sx = 0; if (S.shake > 0) { S.shake = Math.max(0, S.shake - 1 / 60); sx = (Math.random() - .5) * S.shake * .3; }
@@ -386,7 +393,7 @@
     // 見えない棘：黒の妖精ははっきり。ほかの妖精は、近くに来たときと、屍のそばだけうっすら
     for (const q of lv.tn || []) {
       if (!vis(q[1])) continue;
-      let a = sp === 6 ? 1 : 0;
+      let a = sp === 6 || seeAll ? 1 : 0;
       if (!a) { const dx = q[0] - (p.x + PW / 2), dy = q[1] - (p.y + PH / 2); if (dx * dx + dy * dy < 5) a = .35; for (const c of run.cl) { const ex = c.x - q[0], ey = c.y - q[1]; if (ex * ex + ey * ey < 6) { a = Math.max(a, .55); break; } } }
       if (!a) continue;
       g.globalAlpha = a; g.strokeStyle = sp === 6 ? '#e04a6a' : '#c9a0b0'; g.lineWidth = .08;
@@ -423,7 +430,7 @@
     for (const fr of lv.fr || []) { const f = (((s + fr[3]) % fr[2]) + fr[2]) % fr[2] / fr[2]; if (f > .1 && f < .3 && vis(fr[1] - 12)) { g.globalAlpha = .5; g.fillStyle = '#ff9a5c'; g.beginPath(); g.arc(fr[0], fr[1] - 12 + .2, .18 + .1 * Math.sin(s * 20), 0, 7); g.fill(); g.globalAlpha = 1; } }
     for (const d of run.drops) { if (d.done || !vis(d.y)) continue; g.fillStyle = '#ff7a3d'; g.beginPath(); g.arc(d.x, d.y, .32, 0, 7); g.fill(); g.fillStyle = '#ffd29a'; g.beginPath(); g.arc(d.x - .1, d.y - .1, .1, 0, 7); g.fill(); }
     // 自分
-    if (!run.over || run.clear) {
+    if ((!run.over || run.clear) && (!S.watch || S.replay)) {
       const cx = p.x + PW / 2, cy = p.y + PH / 2, fl = Math.sin(s * (p.fly ? 18 : 4)) * (p.fly ? .35 : .12), spc = FT.SP[sp];
       g.fillStyle = p.gauge > .25 ? rgba(fcol, .85) : 'rgba(255,154,92,.85)';
       g.beginPath(); g.ellipse(cx - .3, cy - .1, .42, .2 + fl * .5, -.6 - fl, 0, 7); g.ellipse(cx + .3, cy - .1, .42, .2 + fl * .5, .6 + fl, 0, 7); g.fill();
@@ -444,8 +451,8 @@
         const dg = dark.getContext('2d');
         dg.setTransform(1, 0, 0, 1, 0, 0); dg.clearRect(0, 0, dark.width, dark.height);
         dg.setTransform(S_, 0, 0, S_, 0, -cam * S_);
-        dg.globalCompositeOperation = 'source-over'; dg.fillStyle = sp === 8 ? 'rgba(10,4,20,.35)' : 'rgba(4,2,8,.94)'; dg.fillRect(0, d[0], COLS, d[1] - d[0]);
-        if (sp !== 8) {
+        dg.globalCompositeOperation = 'source-over'; dg.fillStyle = sp === 8 || seeAll ? 'rgba(10,4,20,.35)' : 'rgba(4,2,8,.94)'; dg.fillRect(0, d[0], COLS, d[1] - d[0]);
+        if (sp !== 8 && !seeAll) {
           dg.globalCompositeOperation = 'destination-out';
           const hole = (x, y, r) => { const hg = dg.createRadialGradient(x, y, r * .2, x, y, r); hg.addColorStop(0, 'rgba(0,0,0,1)'); hg.addColorStop(1, 'rgba(0,0,0,0)'); dg.fillStyle = hg; dg.fillRect(x - r, y - r, r * 2, r * 2); };
           hole(p.x + PW / 2, p.y + PH / 2, 3.2);
@@ -543,10 +550,62 @@
     if (ME.sp === null || ME.sp === undefined) { toast('まず妖精をえらんでください'); return; }
     await getFloors();
     const box = $('flList'); box.innerHTML = '';
-    for (let f = 1; f <= W.latest; f++) { const b = document.createElement('button'); b.textContent = f; if (f === W.latest) b.className = 'now'; b.setAttribute('aria-label', `第${f}層 ${FLOORS[f - 1].name}`); b.onclick = () => { modal('oFloors', 0); startFloor(f); }; box.appendChild(b); }
+    for (let f = 1; f <= W.latest; f++) { const b = document.createElement('button'); b.textContent = f; if (f === W.latest) b.className = 'now'; b.setAttribute('aria-label', `第${f}層 ${FLOORS[f - 1].name}`); b.onclick = () => { modal('oFloors', 0); startFloor(f, { watch: flMode === 'watch' }); }; box.appendChild(b); }
     modal('oFloors', 1);
   };
   $('flClose').onclick = () => modal('oFloors', 0);
+  let flMode = 'play';
+  for (const b of document.querySelectorAll('#oFloors .tabs button')) b.onclick = () => { flMode = b.dataset.m; for (const x of document.querySelectorAll('#oFloors .tabs button')) x.classList.toggle('on', x === b); $('flNote').textContent = flMode === 'watch' ? '自分は昇らずに、その層の屍と仕掛けを見られます。一番乗りの昇り方も再生できます。' : '開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。'; };
+  // =============================================
+  //  見る（スペクターモード）
+  // =============================================
+  //  自分は昇らない。屍と仕掛けはふつうに動く。指でなぞるか、↑↓で上下に動かす
+  //  「一番乗りの昇り方」：その層をはじめて越えた人の操作を、そのときの屍で再生する
+  function startWatch(lv) {
+    const F = FT.FAC[Math.max(0, N.FACS.indexOf(N.fac))];
+    S.run = new FT.Run(lv, S.cor, { sp: 0, door: true });
+    S.run.hazard = function (s) { FT.Run.prototype.hazard.call(this, s); return null; };   // 仕掛けは動かすが、だれも死なない
+    S.run.p.x = -50; S.run.p.y = lv.h + 200;
+    S.acc = 0; S.cam = Math.max(0, lv.h - VH);
+    $('hFloor').innerHTML = `第${lv.f}層<small>${esc(lv.name)}</small>`;
+    $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>・見る`;
+    $('hName').textContent = '見る：指でなぞるか ↑↓ で動かす';
+    updateHud();
+    SND.bgm(themeSong(lv));
+  }
+  function watchStep(dt) {
+    const lv = S.lv, R = S.replay;
+    S.acc += dt;
+    while (S.acc >= FT.DT) {
+      S.acc -= FT.DT;
+      if (S.run) { S.run.step(0); S.run.events.length = 0; if (S.run.p.y > lv.h + 400) S.run.p.y = lv.h + 200; }
+      if (R && !R.run.over) { R.run.step(R.inp(R.run.t + 1)); R.run.events.length = 0; if (R.run.over) toast(R.run.clear ? `「${R.name}」 越えた！` : '記録はここまで', '', 2000); }
+    }
+    if (R && S.follow && !R.run.over) S.cam += (Math.max(0, Math.min(lv.h - VH, R.run.p.y - VH * .55)) - S.cam) * Math.min(1, dt * 8);
+    else { const sp = 18 * dt; if (S.keys.j || S.keys.up) S.cam -= sp; if (S.keys.dn) S.cam += sp; }
+    S.cam = Math.max(0, Math.min(lv.h - VH, S.cam));
+  }
+  async function watchReplay() {
+    const f = S.lv.f, o = W.okSnap[f] || (ME.ok[N.fac] || {})[f] || W.open[f];
+    if (!o || !o.id || OFFLINE) { toast('まだだれも、この層を越えていません'); return; }
+    try {
+      const c = await N.rest('ft_clear/' + f + '/' + o.id);
+      if (!c || typeof c.r !== 'string') throw 0;
+      S.replay = { run: new FT.Run(S.lv, FT.corParse(c.c), { sp: c.s | 0, b: c.b | 0, door: true }), inp: FT.Rec.parse(c.r), name: N.cleanName(c.n) || '名無し' };
+      S.follow = true;
+      toast(`はじめて越えた「${S.replay.name}」の昇り方`, '屍は、そのときの屍です', 2400);
+    } catch (e) { toast('記録を読みこめませんでした'); }
+  }
+  $('wReplay').onclick = () => { SND.unlock(); watchReplay(); };
+  $('wFree').onclick = () => { S.follow = false; S.replay = null; };
+  $('wPlay').onclick = () => { if (ME.sp === null || ME.sp === undefined) { toTitle(); toast('まず妖精をえらんでください'); return; } const f = S.lv.f; if (f > W.latest) { toast('まだ開いていない層です'); return; } startFloor(f); };
+  // 見るときは、画面をなぞって上下に動かす
+  let drag = null;
+  cv.addEventListener('pointerdown', ev => { if (!S.watch) return; drag = { y: ev.clientY, c: S.cam }; S.follow = false; });
+  addEventListener('pointermove', ev => { if (!drag || !S.watch) return; const r = cv.getBoundingClientRect(); S.cam = drag.c - (ev.clientY - drag.y) * (cv.height / r.height) / S_; });
+  addEventListener('pointerup', () => { drag = null; });
+  addEventListener('keydown', e => { if (!S.watch || !$('game').classList.contains('on')) return; if (e.code === 'ArrowDown' || e.code === 'KeyS') { S.keys.dn = 1; e.preventDefault(); } if (e.code === 'ArrowUp' || e.code === 'KeyW') { S.keys.up = 1; e.preventDefault(); } });
+  addEventListener('keyup', e => { if (e.code === 'ArrowDown' || e.code === 'KeyS') S.keys.dn = 0; if (e.code === 'ArrowUp' || e.code === 'KeyW') S.keys.up = 0; });
   // =============================================
   //  引き継ぎ
   // =============================================
@@ -579,12 +638,17 @@
   // =============================================
   //  タイトルへ
   // =============================================
-  function toTitle() { N.flush().catch(() => { }); S.run = null; S.lv = null; SND.bgm(null); show('title'); refresh(); }
+  function toTitle() { N.flush().catch(() => { }); S.run = null; S.lv = null; S.watch = false; S.replay = null; $('game').classList.remove('watching'); SND.bgm(null); show('title'); refresh(); }
   $('gBack').onclick = toTitle;
   $('bGo').onclick = async () => { SND.unlock(); await getFloors(); startFloor(W.done ? 100 : W.latest); };
   // はじめる
   paintSnd(); buildPicker();
-  getFloors().then(() => { computeLatest(); title.paint(); }).catch(() => { });
+  getFloors().then(() => {
+    computeLatest(); title.paint();
+    // 管理画面から：?watch=層&fac=陣営 で、その層を見る（開いていない層も見られる）
+    const q = new URLSearchParams(location.search), wf = +(q.get('watch') || 0), wfac = q.get('fac');
+    if (wf >= 1 && wf <= 100) { if (N.FACS.includes(wfac)) N.fac = wfac; ME.tut = 1; refresh(true).then(() => startFloor(wf, { watch: true })); }
+  }).catch(() => { });
   refresh(true);
   requestAnimationFrame(loop);
   // 3分ごとに全体を読みなおす（タイトルにいるときだけ）

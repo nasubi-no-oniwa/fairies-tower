@@ -98,7 +98,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
   ok(fc2 === null, 'Bは、にせの記録を認めない（第3層は開かない）');
   console.log('7) 3つの陣営の高さ');
   const ov = await B.FT.NET.overview();
-  ok(ov.tops.g === 3 && ov.tops.r === 1 && ov.tops.b === 1, `高さ g=${ov.tops.g} r=${ov.tops.r} b=${ov.tops.b}（印のまま。確かめはゲームの中で）`);
+  ok(ov.tops.g === 1 && ov.tops.r === 1 && ov.tops.b === 1 && ov.rawTop === 3, `見せる高さは確かめ済みだけ g=${ov.tops.g} r=${ov.tops.r} b=${ov.tops.b}（にせの印を含む「開いた」は ${ov.rawTop}）`);
   console.log('7b) GitHub のまとめ（snapshot.js）を作って、新しい人がそれを読む');
   const out = cp.spawnSync(process.execPath, [path.join(__dirname, 'snapshot.js')], { env: Object.assign({}, process.env, { FT_CONFIG_JSON: JSON.stringify(CFG), FT_SNAP_DIR: SNAPDIR }), encoding: 'utf8' });
   console.log('     ' + (out.stdout || '').trim().split('\n').join('\n     ') + (out.stderr ? '\n' + out.stderr : ''));
@@ -113,6 +113,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
   ok(corD.size === 4, `まとめを読んだ人に見える屍 ${corD.size} か所`);
   ok(s1.read - s0.read <= 6, `データベースを読んだ回数 ${s1.read - s0.read} 回（まとめから読むので少ない。ふつうは屍の数だけ再生用の記録も読む）`);
   const ovD = await D.FT.NET.overview(); ok(ovD.okSnap[1] && !ovD.okSnap[2], 'まとめの「確かめ済み」が届く');
+  ok(ovD.tops.g === 2 && ovD.tops.r === 1, `ほかの陣営から見える高さも、確かめ済みの第${ovD.tops.g}層まで（にせで開いた第3層は見えない）`);
+  ok(ix.vtops && ix.vtops.g === 2 && ix.vtops.r === 1 && ix.vtops.b === 1, 'まとめに3つの陣営の確かめ済みの高さが入る');
   console.log('7c) 管理の道具');
   await A2.adminLogin('KEY', 'g');
   const by = await A2.dlog(1, 'g'), gC = by.find(x => x.u === cu);

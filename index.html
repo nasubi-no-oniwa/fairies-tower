@@ -75,6 +75,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .btn.on { background: rgba(127, 227, 201, .25); border-color: var(--wing); }
 .btn small { display: block; font-size: 10px; font-weight: 400; color: var(--dim); }
 #bSk.off { opacity: .45; }
+#wbar { display: none; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+#game.watching #wbar { display: flex; }
+#game.watching #pad, #game.watching .keys { display: none !important; }
+#game.watching #gShare { display: none; }
 .keys { display: none; text-align: center; font-size: 12px; color: var(--dim); padding: 8px 12px 12px; }
 @media (hover: hover) and (pointer: fine) { #pad { display: none; } .keys { display: block; } }
 #toast { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); padding: 10px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-size: 15px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s; width: max-content; max-width: calc(100% - 40px); overflow-wrap: anywhere; z-index: 5; }
@@ -161,6 +165,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
       <button class="btn" id="bSk" aria-label="技">技<small id="skName"></small></button>
       <button class="btn" id="bj" aria-label="跳ぶ・飛ぶ">飛ぶ</button>
     </div>
+    <div id="wbar"><button class="sub2" id="wReplay">一番乗りの昇り方</button><button class="sub2" id="wFree">自由に見る</button><button class="sub2" id="wPlay">この層を昇る</button></div>
     <div class="keys" id="keys">← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc でタイトルへ</div>
     <div id="toast"></div>
     <div id="loading">屍を読みこんでいます…</div>
@@ -201,7 +206,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   <!-- ========== 層をえらぶ ========== -->
   <div class="over" id="oFloors"><div class="card">
     <h2>層をえらぶ</h2>
-    <p class="note">開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。</p>
+    <div class="tabs"><button data-m="play" class="on">昇る</button><button data-m="watch">見る</button></div>
+    <p class="note" id="flNote">開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。</p>
     <div id="flList"></div>
     <button class="sub2" id="flClose">閉じる</button>
   </div></div>
@@ -233,11 +239,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
     <button class="go" id="howClose">わかった</button>
   </div></div>
 </div>
-<script src="js/config.js?v=1"></script>
-<script src="js/engine.js?v=1"></script>
-<script src="js/verify.js?v=1"></script>
-<script src="js/net.js?v=1"></script>
-<script src="js/sound.js?v=1"></script>
-<script src="js/main.js?v=1"></script>
+<script src="js/config.js?v=2"></script>
+<script src="js/engine.js?v=2"></script>
+<script src="js/verify.js?v=2"></script>
+<script src="js/net.js?v=2"></script>
+<script src="js/sound.js?v=2"></script>
+<script src="js/main.js?v=2"></script>
 </body>
 </html>
