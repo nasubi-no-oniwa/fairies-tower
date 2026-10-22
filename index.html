@@ -25,6 +25,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 [hidden] { display: none !important; }
+* { touch-action: manipulation; }   /* ダブルタップで拡大しない（ボタンや画面のすき間も） */
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 button { font-family: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
@@ -247,5 +248,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 <script src="js/net.js?v=4"></script>
 <script src="js/sound.js?v=4"></script>
 <script src="js/main.js?v=4"></script>
+<script>
+// スマホで続けてタップしたときに、画面が拡大されないようにする（iPhoneは「拡大しない」の設定を無視するため）
+(function () {
+  let last = 0;
+  const isText = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+  document.addEventListener('touchend', e => { const now = Date.now(); if (now - last < 350 && !isText(e.target)) e.preventDefault(); last = now; }, { passive: false });
+  document.addEventListener('dblclick', e => { if (!isText(e.target)) e.preventDefault(); }, { passive: false });
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+})();
+</script>
 </body>
 </html>
