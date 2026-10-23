@@ -221,6 +221,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 @keyframes spT { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
 #splash.skip * { animation-delay: 0s !important; animation-duration: .3s; }
 #splash.skip .spT { animation: spT 2.2s ease-in-out infinite; }
+.help { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255, 233, 168, .3); background: linear-gradient(135deg, rgba(255, 233, 168, .1), rgba(6, 16, 22, .7)); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); line-height: 1.6; }
+.help .hl1 { font-size: 14px; }
+.help .hl1 b { font-family: var(--display); font-size: 22px; color: #ffe9a8; margin: 0 2px; text-shadow: 0 0 12px rgba(255, 233, 168, .4); }
+.help .hl1 em { font-style: normal; font-size: 12px; font-weight: 700; color: #04201a; background: #a8f4dc; border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; animation: beckon 1.8s ease-in-out infinite; }
+.help .hl2 { font-size: 12px; color: var(--dim); }
 #clBig b { color: #ffe9a8; text-shadow: 0 0 16px rgba(255, 233, 168, .5); }
 @media (prefers-reduced-motion: reduce) { .over.on, .over.on .card, .fac, .sp .in, .go::after, #splash * { animation: none !important; transition: none !important; } #splash .spK, #splash .spL, #splash .spT { opacity: 1; } }
 </style>
@@ -242,6 +247,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
       <div class="num">死んだ数 <b id="tDead">0</b></div>
       <div class="sub" id="tSub"></div>
     </div>
+    <div class="help" id="tHelp" hidden></div>
     <button class="me" id="meCard" aria-label="妖精をえらぶ">
       <canvas id="meSp" width="16" height="16" aria-hidden="true"></canvas>
       <span class="meTx"><small id="meFac">あなたの妖精</small><b id="meName">まだえらんでいない</b><span id="meSk"></span></span>
@@ -411,9 +417,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 <script src="js/engine.js?v=7"></script>
 <script src="js/art.js?v=6"></script>
 <script src="js/verify.js?v=7"></script>
-<script src="js/net.js?v=7"></script>
+<script src="js/net.js?v=8"></script>
 <script src="js/sound.js?v=6"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/main.js?v=8"></script>
 <script src="js/ui.js?v=6"></script>
 <script>
 // スマホで続けてタップしたときに、画面が拡大されないようにする（iPhoneは「拡大しない」の設定を無視するため）

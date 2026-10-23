@@ -251,6 +251,17 @@
         }
       }
     },
+    "ft_help": {
+      ".read": true,
+      "$f": {
+        ".write": "!newData.exists() && (auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
+        ".validate": "$f.matches(/^([1-9]|[1-9][0-9]|100)$/)",
+        "$k": {
+          ".write": "(!root.child('ft_end').exists() && auth != null && newData.exists() && (newData.parent().parent().parent().child('ft_u/' + auth.uid + '/c').val() === now || newData.parent().parent().parent().child('ft_u/' + auth.uid + '/k').val() === now)) || (auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
+          ".validate": "$k.matches(/^[0-9]{1,6}$/) && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+        }
+      }
+    },
     "ft_ckpt": {
       ".read": true,
       ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",

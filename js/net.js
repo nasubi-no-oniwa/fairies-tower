@@ -11,6 +11,7 @@
 //   ft_end                : { t, w：勝った陣営 }   ゲームの終わり（管理人が入れる。入ると書きこめなくなる）
 //   ft_u/{匿名ID}          : { c：最後に死んだ時刻, k：最後に越えた時刻, w/{層}：越えた記録の数（3まで） }
 //   ft_rm/{層}・ft_reset/{層} : { t }   管理人が屍を取り除いた・層を消した時刻
+//   ft_help/{層}/{場所}   : その屍が、あとから来た人の足場になった数（1回の挑戦で1つの屍につき1）
 //   ft_ckpt               : 管理人が「ここまでは本物」と確かめた層
 //   ft_admin/key・ft_admins/{匿名ID} : 管理のかぎ
 //
@@ -191,6 +192,10 @@
       const [rm, rs] = await Promise.all([rest('ft_rm/' + f + '/t').catch(() => null), rest('ft_reset/' + f + '/t').catch(() => null)]);
       const key = (rm || 0) + '_' + (rs || 0); if (key !== F.rmKey) { lv._F = null; return trust(lv, ms); }
     }
+    // 前に読んでから時間がたっていれば、新しい屍だけ読みたす（同じ層に入りなおしたとき、増えた屍が見えないままにならないように）
+    if (Date.now() - F.fullAt > 3000) {
+      try { const v = await rest('ft_cells/' + f, { orderBy: 't', startAt: F.maxT + 1 }); for (const k in v || {}) { if (!v[k]) continue; F.raw[k] = v[k]; if (v[k].t > F.maxT) F.maxT = v[k].t; } F.fullAt = Date.now(); } catch (e) { }
+    }
     let items = null;
     try { items = V.newItems(F.st, await rest('ft_dlog/' + f, { orderBy: 't', startAt: F.st.t })); } catch (e) { items = null; }
     if (!items) { F.more = true; return V.shown(F.st, F.raw, F.rest); }
@@ -232,6 +237,7 @@
       const w = { ['ft_u/' + uid + '/c']: SV }, per = {};
       for (const e of batch) {
         per[e.f] = per[e.f] || { d: 0, m: 0 }; per[e.f].d++; per[e.f].m = Math.max(per[e.f].m, e.m | 0);
+        for (const hk of (e.help || []).slice(0, 20)) w['ft_help/' + e.f + '/' + hk] = INC();
         if (e.k < 0) continue;
         const g = pid(), cp = 'ft_cells/' + e.f + '/' + e.k;
         if (e.merge && !e.asNew) { w[cp + '/n'] = INC(); w[cp + '/t'] = SV; w[cp + '/g'] = g; }
@@ -250,6 +256,7 @@
           // 合流のつもりが、その屍がもうない（管理人が取り除いた）→ 新しい屍として送る
           await Promise.all(batch.filter(e2 => e2.k >= 0 && w['ft_cells/' + e2.f + '/' + e2.k + '/n']).map(async e2 => { const cp = 'ft_cells/' + e2.f + '/' + e2.k; const ex = await rest(cp + '/n').catch(() => 1); if (ex === null) { const g = w[cp + '/g']; delete w[cp + '/n']; delete w[cp + '/t']; delete w[cp + '/g']; w[cp] = { n: INC(), s: e2.s | 0, l: N.cleanName(e2.name) || '名無し', t: SV, g }; } }));
           for (const f in per) delete w['ft_stat/' + f + '/m'];
+          for (const k in w) if (k.startsWith('ft_help/')) delete w[k];   // 足場の数は、送れなくてもよい
           await sleep(900 + Math.random() * 600);
           w['ft_u/' + uid + '/c'] = SV;
         }
@@ -280,6 +287,7 @@
         w['ft_u/' + uid + '/w/' + f] = (+wn || 0) + 1;
         if (!op) { w['ft_open/' + f] = { t: SV, n: N.cleanName(o.name) || '名無し', x: '', id, u: uid }; opened = true; }
       }
+      if (i === 0) for (const hk of (o.help || []).slice(0, 20)) w['ft_help/' + f + '/' + hk] = INC();
       try { await update(w); lastK = Date.now(); return { id, opened }; }
       catch (e) { lastK = Date.now(); if (!perm(e)) throw e; await sleep(4400 + Math.random() * 800); }
     }
@@ -319,7 +327,13 @@
   //  管理（管理のかぎを、この端末の匿名IDに登録してから）
   // =============================================
   N.adminLogin = async function (key, f) { await N.token(false, f); await restWrite('PUT', 'ft_admins/' + N.uid(f), String(key), f); return N.uid(f); };
-  N.resetFloor = (f, F) => update({ ['ft_cells/' + f]: null, ['ft_dlog/' + f]: null, ['ft_drec/' + f]: null, ['ft_rm/' + f]: { t: SV }, ['ft_reset/' + f]: { t: SV } }, F);
+  N.resetFloor = (f, F) => update({ ['ft_cells/' + f]: null, ['ft_dlog/' + f]: null, ['ft_drec/' + f]: null, ['ft_help/' + f]: null, ['ft_rm/' + f]: { t: SV }, ['ft_reset/' + f]: { t: SV } }, F);
+  // 自分の屍が、何人の足場になったか（list：[{ a：陣営, f：層, k：場所 }]）。陣営ごとのデータベースから、1つずつ読む（軽い）
+  N.helpOf = async function (list) {
+    const out = new Map();
+    await Promise.all(list.filter(o => N.ready(o.a)).map(o => rest('ft_help/' + o.f + '/' + o.k, null, o.a).then(v => { out.set(o.a + ':' + o.f + ':' + o.k, typeof v === 'number' ? v : 0); }).catch(() => { })));
+    return out;
+  };
   N.setCkpt = (f, F) => restWrite('PUT', 'ft_ckpt', f, F);
   N.setEnd = (w, F) => restWrite('PUT', 'ft_end', { t: SV, w }, F);
   N.dlog = async function (f, F) {

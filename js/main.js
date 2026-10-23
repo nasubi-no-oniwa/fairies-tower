@@ -18,7 +18,7 @@
   const NAME = ['ルカ', 'イオ', 'ナギ', 'ツバキ', 'ハク', 'セツ', 'マオ', 'リク', 'モモ', 'スズ', 'ヒバリ', 'フウ', 'コハ', 'ウタ', 'ソラ', 'アオ', 'シノ', 'テオ', 'ニコ', 'ミナ', '旅人', '見習い', '弓兵', '吟遊詩人', '鍛冶屋', '薬師', '巡礼者', '学者'];
   const newName = () => (PRE[Math.floor(Math.random() * PRE.length)] + NAME[Math.floor(Math.random() * NAME.length)]).slice(0, 12);
   // ---------- 自分の記録（この端末） ----------
-  const ME = Object.assign({ sp: null, best: {}, dead: 0, tut: 0, ok: {}, ng: {}, lok: {}, xid: '' }, N.store('ft_me') || {});
+  const ME = Object.assign({ sp: null, best: {}, dead: 0, tut: 0, ok: {}, ng: {}, lok: {}, xid: '', mine: [], helpSeen: 0 }, N.store('ft_me') || {});
   const saveMe = () => N.store('ft_me', ME);
   const facOf = sp => FT.SP[sp].fac, fidOf = sp => N.FACS[FT.SP[sp].fac];
   if (ME.sp !== null && ME.sp !== undefined) N.fac = fidOf(ME.sp);
@@ -57,11 +57,11 @@
   async function refresh(force) {
     if (OFFLINE) { computeLatest(); title.paint(); return; }
     if (refP) return refP;
-    if (!force && W.loaded && Date.now() - refAt < 60000) { computeLatest(); title.paint(); return; }
+    if (!force && W.loaded && Date.now() - refAt < 60000) { computeLatest(); title.paint(); loadHelp().then(paintHelp); return; }
     refAt = Date.now();
     refP = (async () => {
       try { const o = await N.overview(); W.open = Object.assign({}, o.open); W.stat = o.stat || {}; W.okSnap = o.okSnap || {}; W.ckpt = o.ckpt; W.tops = Object.assign(W.tops, o.tops); W.ends = o.ends || {}; W.loaded = true; } catch (e) { W.loaded = false; }
-      computeLatest(); title.paint();
+      computeLatest(); title.paint(); loadHelp().then(paintHelp);
       if (W.loaded && !ended()) verifyChain().then(() => title.paint()).catch(() => { });
     })().finally(() => { refP = null; });
     return refP;
@@ -144,6 +144,7 @@
       $('bGo').disabled = !has;
       $('bGo').textContent = !has ? '妖精をえらんでください' : W.done ? '頂上をながめる' : `第${L}層から昇る${end ? '（記録は残りません）' : ''}`;
       drawTree($('tree'), 1);
+      paintHelp();
       if (FT.UI && FT.UI.onPaint) FT.UI.onPaint();
     },
   };
@@ -205,6 +206,7 @@
     else { try { cor = await N.loadCells(lv); } catch (e) { toast('みんなの屍を読みこめませんでした', 'この端末の分だけで遊べます', 2600); } }
     $('loading').classList.remove('on');
     S.lv = lv; S.cor = cor; S.nextCor = null; S.mine = new Map(); S.deathsHere = 0; S.fx = [];
+    if (!opt.watch) loadHelpFloor(f);
     S.latest = f === W.latest && !W.done;
     S.watch = !!opt.watch; S.replay = null; S.follow = false;
     $('game').classList.toggle('watching', S.watch);
@@ -225,6 +227,7 @@
     else if (thTxt) toast(`第${f}層　${lv.name}`, thTxt, 2400);
   }
   function spawn(first) {
+    S.used = new Set();
     if (S.nextCor) { S.cor = S.nextCor; S.nextCor = null; }
     S.name = newName();
     const c = ctxFor(S.lv.f);
@@ -267,8 +270,8 @@
       switch (e.k) {
         case 'jump': SND.se('jump'); break;
         case 'bounce': SND.se('bounce'); break;
-        case 'land': SND.se('land'); break;
-        case 'grab': SND.se('grab'); { const c = run.cl[e.a]; if (c) c.glow = 1; } break;
+        case 'land': SND.se('land'); if (run.p.onC >= 0 && run.cl[run.p.onC]) useCor(run.cl[run.p.onC].k); break;
+        case 'grab': SND.se('grab'); { const c = run.cl[e.a]; if (c) { c.glow = 1; useCor(c.k); } } break;
         case 'splash': SND.se('splash'); break;
         case 'leap': SND.se('leap'); break;
         case 'freeze': SND.se('freeze'); S.fx.push({ ring: 1, x: run.p.x + PW / 2, y: run.p.y + PH / 2, life: .6, c: '#ffd84a' }); break;
@@ -278,6 +281,39 @@
     run.events.length = 0;
   }
   // ---------- 死んだ ----------
+  // ---------- 屍が足場になった数 ----------
+  //  遊んでいる間に乗った（着地した・つかまった）屍を覚えておき、挑戦が終わったら「足場になった数＋1」を送る（自分の屍は数えない）
+  const mineKey = (a, f, k) => a + ':' + f + ':' + k;
+  const isMine = k => S.mine.has(k) || ME.mine.some(o => o.a === N.fac && o.f === S.lv.f && o.k === k);
+  function useCor(k) { if (S.watch || !S.used || S.used.size >= 20 || isMine(k)) return; S.used.add(k); }
+  function rememberMine(f, k, n) {
+    ME.mine = (ME.mine || []).filter(o => !(o.a === N.fac && o.f === f && o.k === k));
+    ME.mine.push({ a: N.fac, f, k, n: N.cleanName(n) || '名無し', t: Date.now() });
+    if (ME.mine.length > 50) ME.mine = ME.mine.slice(-50);
+    saveMe();
+  }
+  const HELP = new Map(); let helpAt = 0, helpP = null;
+  function loadHelp(force) {
+    if (OFFLINE || !ME.mine || !ME.mine.length) return Promise.resolve();
+    if (helpP) return helpP; if (!force && Date.now() - helpAt < 60000) return Promise.resolve();
+    helpAt = Date.now();
+    helpP = N.helpOf(ME.mine).then(m => { for (const [k, v] of m) HELP.set(k, v); }).catch(() => { }).finally(() => { helpP = null; });
+    return helpP;
+  }
+  // 遊んでいる層の自分の屍だけ読む
+  function loadHelpFloor(f) { if (OFFLINE) return; const list = (ME.mine || []).filter(o => o.a === N.fac && o.f === f); if (list.length) N.helpOf(list).then(m => { for (const [k, v] of m) HELP.set(k, v); }).catch(() => { }); }
+  function paintHelp() {
+    const el = $('tHelp'); if (!el) return;
+    const list = (ME.mine || []).map(o => Object.assign({ h: HELP.get(mineKey(o.a, o.f, o.k)) || 0 }, o));
+    const sum = list.reduce((a, o) => a + o.h, 0);
+    if (!list.length || !HELP.size) { el.hidden = true; return; }
+    el.hidden = false;
+    const best = list.slice().sort((a, b) => b.h - a.h)[0], diff = sum - (ME.helpSeen || 0);
+    const fn = a => { const F = FT.FAC[N.FACS.indexOf(a)]; return F ? `<span style="color:${F.color}">${esc(F.name)}</span>の` : ''; };
+    el.innerHTML = `<div class="hl1">あなたの屍は、のべ <b>${fmt(sum)}</b>人の足場になった${diff > 0 ? `<em>＋${fmt(diff)}</em>` : ''}</div>` +
+      (best && best.h > 0 ? `<div class="hl2">いちばん役に立った屍：${fn(best.a)}第${best.f}層「${esc(best.n)}」（${fmt(best.h)}人）</div>` : `<div class="hl2">まだだれも乗っていない。あとから来る仲間を待とう</div>`);
+    if (diff !== 0) { clearTimeout(paintHelp.t); paintHelp.t = setTimeout(() => { ME.helpSeen = sum; saveMe(); }, 4000); }
+  }
   const KIND = { wing: '翅が尽きて、力尽きた', drown: '水の中で、息が尽きた', spear: '幹の槍に貫かれた', fire: '炎に焼かれた', burn: '燃える枝で焼かれた', moth: '蛾に触れた', bee: '蜂に刺された', thorn: '見えない棘に刺さった', fruit: '落ちてきた実に打たれた' };
   function onDie() {
     const run = S.run, pl = run.place, lv = S.lv, name = S.name, f = lv.f;
@@ -288,15 +324,15 @@
     let sub = '';
     if (pl.k >= 0) {
       const c = S.cor.get(pl.k);
-      if (pl.merge && c) { c.n++; c.glow = 1; sub = `「${c.name}」の屍に合流した（${fmt(c.n)}人が眠る）`; setTimeout(() => SND.se('merge'), 200); }
-      else { S.cor.set(pl.k, { n: 1, s: ME.sp, name, t: Date.now(), glow: 1, mine: 1 }); S.mine.set(pl.k, S.cor.get(pl.k)); sub = 'ここが、あとから来る仲間の足場になる'; setTimeout(() => SND.se('pile'), 200); }
+      if (pl.merge && c) { c.n++; c.glow = 1; sub = `「${c.name}」の屍に合流した（${fmt(c.n)}人が眠る）`; setTimeout(() => SND.se('merge'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, c.name || name); }
+      else { S.cor.set(pl.k, { n: 1, s: ME.sp, name, t: Date.now(), glow: 1, mine: 1 }); S.mine.set(pl.k, S.cor.get(pl.k)); sub = 'ここが、あとから来る仲間の足場になる'; setTimeout(() => SND.se('pile'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, name); }
     } else sub = '根もとで倒れた。屍は残らない';
     toast(`${name}は${KIND[run.dead] || '力尽きた'}`, sub, 1700);
     const m = Math.round(Math.max(0, Math.min(1, (lv.h - 1 - run.p.top) / (lv.h - 2.2))) * 1000);
     if (OFFLINE) saveLocalCor(f, S.cor);
     else if (!ended()) {
       const k = pl.k, myCor = S.cor;
-      N.died({ f, k, merge: !!pl.merge, s: ME.sp, name, rec: S.rec.str(), cor: S.startCor, ticks: run.t, b: S.opt.b, m })
+      N.died({ f, k, merge: !!pl.merge, s: ME.sp, name, rec: S.rec.str(), cor: S.startCor, ticks: run.t, b: S.opt.b, m, help: [...S.used].filter(x => x !== k) })
         .then(() => { const st = W.stat[f] = W.stat[f] || {}; st.d = (st.d || 0) + 1; updateHud(); refreshStat(); })
         .catch(() => { const c = k >= 0 && myCor.get(k); if (c && c.mine && c.n <= 1) myCor.delete(k); });   // 送れなかった屍は、この端末でも消す（あとの挑戦の確かめが通らなくなるので）
       // ほかの人の屍の読みなおしは、20秒に1回まで
@@ -328,7 +364,7 @@
     if (ended()) { $('clMsg').textContent = 'ゲームは終わっているので、記録は残りません'; return; }
     $('clMsg').textContent = '記録を送っています…';
     try {
-      const r = await N.clear(lv, { name: S.name, rec: S.rec.str(), cor: S.startCor, ticks, s: ME.sp, b: S.opt.b, full: !wasOpen || f === 100 });
+      const r = await N.clear(lv, { name: S.name, rec: S.rec.str(), cor: S.startCor, ticks, s: ME.sp, b: S.opt.b, full: !wasOpen || f === 100, help: [...(S.used || [])] });
       const id = r && r.id; S.clearInfo.id = id; S.clearInfo.opened = !!(r && r.opened);
       if (r && r.opened) { $('clFirst').hidden = false; $('clMsg').textContent = f === 100 ? `${F.name}が、世界樹の頂にたどり着いた！` : `第${f + 1}層が、いま開いた。あなたが一番乗り`; SND.se('open'); }
       else $('clMsg').textContent = f === 100 ? '頂の碑に、あなたの名前が刻まれた' : (wasOpen ? '' : 'ひと足先に越えた仲間がいました。あなたの記録も残りました');
@@ -446,7 +482,8 @@
       ART.sleeper(b, c.s, cx, cy - 12, face);
       if (c.shield && run.t - c.shield < 30) { b.globalAlpha = 1 - (run.t - c.shield) / 30; ART.dotEllipse(b, cx, cy - 4, 9, 9, 0, 'rgba(255,210,154,.6)', '#ffd29a'); b.globalAlpha = 1; }
       lights.push([c.x, c.y - .4, 1.8 + Math.min(1.4, n * .12), ART.hex(col), .75 + .5 * (src.glow || 0) + Math.min(.25, n * .02)]);
-      labels.push([c.x, c.y - 1.3 + bob / PXs, n > 1 ? `${src.name || ''}　${fmt(n)}人` : (src.name || '')]);
+      const hN = S.watch ? 0 : HELP.get(mineKey(N.fac, lv.f, c.k)) || 0;
+      labels.push([c.x, c.y - 1.3 + bob / PXs, (n > 1 ? `${src.name || ''}　${fmt(n)}人` : (src.name || '')) + (hN > 0 ? `（${fmt(hN)}人の足場）` : '')]);
     }
     // ---- 灰の足場 ----
     if (run.block) { const bk = run.block; ART.spr(b, 'stone', X(bk.x - 1.1), Y(bk.y) - 3, false, Math.round(2.2 * PXs), 12); }
@@ -689,7 +726,7 @@
   // =============================================
   const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
-  function myCode() { return 'FT1' + b64e(JSON.stringify({ s: ME.sp, b: ME.best, d: ME.dead, x: ME.xid || '' })); }
+  function myCode() { return 'FT1' + b64e(JSON.stringify({ s: ME.sp, b: ME.best, d: ME.dead, x: ME.xid || '', m: (ME.mine || []).map(o => [o.a, o.f, o.k, o.n]) })); }
   $('bCode').onclick = () => { $('cdMine').value = myCode(); $('cdIn').value = ''; modal('oCode', 1); };
   $('cdCopy').onclick = async () => { try { await navigator.clipboard.writeText($('cdMine').value); toast('コードをうつしました'); } catch (e) { $('cdMine').select(); toast('コードをえらびました', '長押ししてコピーしてください'); } };
   $('cdLoad').onclick = () => {
@@ -699,6 +736,7 @@
       if (o.s !== null && o.s !== undefined && FT.SP[o.s]) ME.sp = o.s;
       for (const k of N.FACS) if (o.b && +o.b[k] >= 1 && +o.b[k] <= 100) ME.best[k] = Math.max(ME.best[k] || 0, +o.b[k]);
       ME.dead = Math.max(ME.dead || 0, +o.d || 0); if (o.x) ME.xid = N.cleanX(o.x);
+      if (Array.isArray(o.m)) { const had = new Set((ME.mine || []).map(q => mineKey(q.a, q.f, q.k))); for (const q of o.m) { if (!Array.isArray(q) || !N.FACS.includes(q[0]) || !(+q[1] >= 1 && +q[1] <= 100) || !(+q[2] >= 0)) continue; if (!had.has(mineKey(q[0], +q[1], +q[2]))) ME.mine.push({ a: q[0], f: +q[1], k: +q[2], n: N.cleanName(q[3]) || '名無し', t: 0 }); } ME.mine = ME.mine.slice(-50); helpAt = 0; }
       saveMe(); if (ME.sp !== null && ME.sp !== undefined) N.fac = fidOf(ME.sp);
       modal('oCode', 0); toast('読みこみました'); refresh(true);
     } catch (e) { toast('コードの形がちがいます'); }
@@ -716,7 +754,7 @@
   // =============================================
   //  タイトルへ
   // =============================================
-  function toTitle() { N.flush().catch(() => { }); S.run = null; S.lv = null; S.watch = false; S.replay = null; $('game').classList.remove('watching'); SND.bgm(null); show('title'); refresh(); }
+  function toTitle() { N.flush().catch(() => { }); S.run = null; S.lv = null; S.watch = false; S.replay = null; $('game').classList.remove('watching'); SND.bgm(null); show('title'); helpAt = 0; refresh(); }
   $('gBack').onclick = () => { if (FT.UI.pause && !S.watch) FT.UI.pause(); else toTitle(); };
   $('bGo').onclick = async () => { SND.unlock(); await getFloors(); startFloor(W.done ? 100 : W.latest); };
   // はじめる

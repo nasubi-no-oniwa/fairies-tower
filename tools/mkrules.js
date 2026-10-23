@@ -97,6 +97,14 @@ const rules = {
     ft_end: { '.read': true, '.write': ADMIN, '.validate': "newData.hasChildren(['t', 'w']) && newData.child('t').isNumber() && newData.child('w').isString() && newData.child('w').val().matches(/^(g|r|b)$/)" },
     ft_rm: { '.read': true, $f: { '.write': ADMIN, '.validate': `${F} && newData.hasChildren(['t']) && ${time("newData.child('t')")}`, t: { '.validate': true }, $other: { '.validate': false } } },
     ft_reset: { '.read': true, $f: { '.write': ADMIN, '.validate': `${F} && newData.hasChildren(['t']) && ${time("newData.child('t')")}`, t: { '.validate': true }, $other: { '.validate': false } } },
+    // 屍が足場になった数：死んだ・越えた記録と同じ書きこみの中でだけ（ft_u の c か k をいま書いた人）、1ずつ増やせる
+    ft_help: {
+      '.read': true,
+      $f: {
+        '.write': `!newData.exists() && ${ADMIN}`, '.validate': F,
+        $k: { '.write': `(${OPEN} && auth != null && newData.exists() && (${R("'ft_u/' + auth.uid + '/c'")}.val() === now || ${R("'ft_u/' + auth.uid + '/k'")}.val() === now)) || ${ADMIN}`, '.validate': "$k.matches(/^[0-9]{1,6}$/) && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1" },
+      },
+    },
     ft_ckpt: { '.read': true, '.write': ADMIN, '.validate': "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
   },
 };

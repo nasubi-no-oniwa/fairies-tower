@@ -106,11 +106,11 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
   ok(ix.ok[1] && ix.ok[1].id === r1.id, 'まとめ：第1層は確かめ済み（本物の記録）');
   ok(!ix.ok[2], 'まとめ：第2層（にせの記録）は確かめ済みにならない');
   const f1 = JSON.parse(fs.readFileSync(path.join(SNAPDIR, 'g', 'f1.json')));
-  ok(Object.keys(f1.st.P).length === 4 && (f1.st.bad[cu] || 0) >= 3, `まとめの第1層：確かめ済みの屍 ${Object.keys(f1.st.P).length} か所、にせのID ${f1.st.bad[cu]}`);
+  ok(Object.keys(f1.st.P).length === corA.size && (f1.st.bad[cu] || 0) >= 3, `まとめの第1層：確かめ済みの屍 ${Object.keys(f1.st.P).length} か所、にせのID ${f1.st.bad[cu]}`);
   const s0 = (await (await fetch(`http://127.0.0.1:${PORT}/__stats`)).json());
   const D = client('D', true); const lvD = lvOf(D, 1); const corD = await D.FT.NET.loadCells(lvD);
   const s1 = (await (await fetch(`http://127.0.0.1:${PORT}/__stats`)).json());
-  ok(corD.size === 4, `まとめを読んだ人に見える屍 ${corD.size} か所`);
+  ok(corD.size === corA.size, `まとめを読んだ人に見える屍 ${corD.size} か所`);
   ok(s1.read - s0.read <= 6, `データベースを読んだ回数 ${s1.read - s0.read} 回（まとめから読むので少ない。ふつうは屍の数だけ再生用の記録も読む）`);
   const ovD = await D.FT.NET.overview(); ok(ovD.okSnap[1] && !ovD.okSnap[2], 'まとめの「確かめ済み」が届く');
   ok(ovD.tops.g === 2 && ovD.tops.r === 1, `ほかの陣営から見える高さも、確かめ済みの第${ovD.tops.g}層まで（にせで開いた第3層は見えない）`);
@@ -120,13 +120,28 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
   const by = await A2.dlog(1, 'g'), gC = by.find(x => x.u === cu);
   ok(gC && gC.n === 4, `にせを置いた人の屍 ${gC && gC.n} 人分が見つかる`);
   await A2.removeBy(1, gC, 'g'); const cAfter = await get('ft_cells/1');
-  ok(Object.keys(cAfter).length === 4, `取り除いたあとの屍 ${Object.keys(cAfter).length} か所`);
+  ok(Object.keys(cAfter).length === corA.size, `取り除いたあとの屍 ${Object.keys(cAfter).length} か所`);
   await A2.blankName(1, r1.id, 'g'); const op1 = await get('ft_open/1');
   ok(op1.n === '名無し', '碑の名前を消せる');
   await A2.purge(2, [r2.id], true, 'g'); const op2 = await get('ft_open/2');
   ok(op2 === null, 'にせの越えた記録と、開いた印を消せる');
   let dn = false; try { await A2.resetFloor(1, 'g'); } catch (e) { dn = true; } const c0 = await get('ft_cells/1');
   ok(!dn && c0 === null, '層の屍をぜんぶ消せる');
+  console.log('7d) 屍が足場になった数（ft_help）');
+  {
+    const ks = [...corA.keys()], k0 = ks[0], k1 = ks[1], E = client('E'); const NE = E.FT.NET;
+    const lvE = lvOf(E, 1); await NE.loadCells(lvE);
+    const r = new E.FT.Run(lvE, new Map(corA), { sp: 3 }), rec = new E.FT.Rec(); while (!r.over && r.t < 300) { rec.put(r.t + 1, 4); r.step(4); }
+    await NE.died({ f: 1, k: -1, merge: false, s: 3, name: 'E', rec: rec.str(), cor: E.FT.corStr(corA), ticks: Math.max(1, r.t), b: 0, m: 0, help: [k0, k1, k0] });
+    const h1 = await get('ft_help/1');
+    ok(h1 && h1[k0] === 1 && h1[k1] === 1, `乗った屍に1ずつ数が入る（${JSON.stringify(h1)}）`);
+    await sleep(900);
+    await NE.died({ f: 1, k: -1, merge: false, s: 3, name: 'E2', rec: rec.str(), cor: E.FT.corStr(corA), ticks: Math.max(1, r.t), b: 0, m: 0, help: [k0] });
+    const h2 = await get('ft_help/1'); ok(h2[k0] === 2 && h2[k1] === 1, `もう1回乗ると2になる（${h2[k0]}）`);
+    let denied = false; try { await NE.update({ ['ft_help/1/' + k0]: 10 }); } catch (e) { denied = true; } ok(denied, '数を一度に増やすことはできない');
+    denied = false; try { await NE.update({ ['ft_help/1/' + k0]: 3 }); } catch (e) { denied = true; } ok(denied, '回数の印（ft_u/c）なしでは増やせない');
+    const m = await NE.helpOf([{ a: 'g', f: 1, k: k0 }, { a: 'g', f: 1, k: 99999 }]); ok(m.get('g:1:' + k0) === 2 && m.get('g:1:99999') === 0, '自分の屍の数を読める');
+  }
   console.log('8) 管理：終わりの印を入れると、書きこめなくなる'); await A2.setEnd('g', 'g');
   await sleep(800); denied = false;
   try { const g = A2.pid(); await A2.update({ ['ft_u/' + A2.uid() + '/c']: { '.sv': 'timestamp' }, ['ft_stat/1/d']: { '.sv': { increment: 1 } } }); } catch (e) { denied = true; }
