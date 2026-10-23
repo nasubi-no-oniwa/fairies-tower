@@ -169,7 +169,7 @@
       const b = document.createElement('button'); b.className = 'fcard' + (fi === cur ? ' cur' : '') + (cur >= 0 && fi !== cur && left > 0 ? ' lock' : '');
       b.style.setProperty('--fc', F.color); b.style.setProperty('--d', fi * .1 + 's');
       const top = Math.min(101, (UI.W.tops && UI.W.tops[N_FACS[fi]]) || 1);
-      b.innerHTML = `<span class="fx"></span><span><b>${esc(F.name)}</b><small>${esc(MOTTO[fi])}</small></span><span class="top">${top > 100 ? esc(T('頂')) : esc(T('第{0}層', top))}<span>${esc(T('最前線'))}</span></span>${fi === cur ? `<span class="tag">${esc(T('あなたの陣営'))}</span>` : ''}`;
+      b.innerHTML = `<span class="fx"></span><span><b>${esc(F.name)}</b><small>${esc(MOTTO[fi])}</small></span><span class="top">${top > 100 ? esc(T('頂')) : esc(T('第{0}層', top))}<span class="pct">${top > 100 ? '100%' : '…'}</span><span class="bar"><i style="width:${top > 100 ? 100 : 0}%"></i></span></span>${fi === cur ? `<span class="tag">${esc(T('あなたの陣営'))}</span>` : ''}`;
       const fx = b.querySelector('.fx'); FT.SP.forEach((sp, si) => { if (sp.fac !== fi) return; const c = document.createElement('canvas'); c.width = c.height = 16; c.dataset.sp = si; c.className = 'spc'; fx.appendChild(c); });
       b.onclick = () => {
         if (cur >= 0 && fi !== cur) {
@@ -179,6 +179,12 @@
         SND.se('flip'); UI.modal('oFac', 0); openPick(facFirst || fi !== cur, fi);
       };
       box.appendChild(b);
+      // その陣営の最前線の層で、どこまで昇ったか（％）
+      if (top <= 100 && !UI.OFFLINE && FT.NET.ready(N_FACS[fi])) FT.NET.rest('ft_stat/' + top + '/m', null, N_FACS[fi]).then(m => {
+        const pct = Math.max(0, Math.min(99, Math.floor((+m || 0) / 10)));
+        b.querySelector('.pct').textContent = pct + '%'; b.querySelector('.bar i').style.width = pct + '%';
+      }).catch(() => { b.querySelector('.pct').textContent = ''; });
+      else if (top <= 100) b.querySelector('.pct').textContent = '';
     });
     UI.modal('oFac', 1);
   }

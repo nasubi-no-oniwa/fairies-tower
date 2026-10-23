@@ -267,7 +267,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .fcard b { display: block; font-family: var(--display); font-size: 19px; color: #fffbe6; letter-spacing: .05em; }
 .fcard small { display: block; font-size: 12px; color: #cfe0da; line-height: 1.5; }
 .fcard .top { font: 700 13px var(--body); color: var(--fc); text-align: right; white-space: nowrap; }
-.fcard .top span { display: block; font-size: 10px; color: var(--dim); font-weight: 400; }
+.fcard .top { min-width: 74px; }
+.fcard .top .pct { display: block; font-size: 12px; color: #fffbe6; font-weight: 700; margin-top: 2px; }
+.fcard .top .bar { display: block; height: 5px; margin-top: 4px; border-radius: 999px; background: rgba(255,255,255,.12); overflow: hidden; }
+.fcard .top .bar i { display: block; height: 100%; background: var(--fc); box-shadow: 0 0 8px var(--fc); transition: width .8s ease-out; }
 .fcard .tag { position: absolute; top: 6px; right: 10px; font-size: 10px; color: var(--fc); font-weight: 700; }
 #facs.one { grid-template-columns: 1fr; }
 #facs.one .fac { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -556,7 +559,7 @@ select.tg option { background: #0d2a2e; color: var(--ink); }
 <script src="js/net.js?v=13"></script>
 <script src="js/sound.js?v=6"></script>
 <script src="js/main.js?v=15"></script>
-<script src="js/ui.js?v=15"></script>
+<script src="js/ui.js?v=16"></script>
 <script src="js/board.js?v=13"></script>
 <script>FT.applyDOM && FT.applyDOM();</script>
 <script>
