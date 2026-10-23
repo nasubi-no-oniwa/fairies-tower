@@ -57,7 +57,13 @@ th { color: var(--dim); font-weight: 400; }
     <div class="wide"><table id="bdT"></table></div>
   </section>
   <section>
-    <h2>5. 終わり</h2>
+    <h2>5. 配信中</h2>
+    <p class="note">ここに出した人は、ゲームのタイトルと遊んでいる画面の右上に「🔴配信中」として出ます。緑の同盟のデータベースに入れるので、先に上で「緑の同盟」に入ってください。配信が終わったら「消す」を押してください。</p>
+    <div class="row"><input id="lvN" placeholder="名前（20文字まで）" maxlength="20"><input id="lvU" placeholder="配信のURL（https:// から）" maxlength="300"><input id="lvM" placeholder="ひとこと（なくてもよい・30文字まで）" maxlength="30"><button class="go" id="lvAdd">出す</button></div>
+    <div class="wide"><table id="lvT"></table></div>
+  </section>
+  <section>
+    <h2>6. 終わり</h2>
     <p class="note">頂上にたどり着いた陣営を確かめてから押してください。3つのデータベースすべてに「終わり」の印を入れます（入れると、だれも書きこめなくなります）。3つの陣営すべてに入っておく必要があります。</p>
     <div class="row"><select id="win"><option value="g">緑の同盟の勝ち</option><option value="r">赤の軍勢の勝ち</option><option value="b">青の連合の勝ち</option></select><button class="warn" id="endSet">ゲームを終える</button></div>
   </section>
@@ -131,6 +137,21 @@ th { color: var(--dim); font-weight: 400; }
   }
   $('bdLoad').onclick = bdLoad;
   $('bdPinSet').onclick = async () => { try { await N.boardSetPin($('bdK').value, $('bdPinIn').value.trim(), bdF()); log('お知らせを入れました'); } catch (e) { log('入れられませんでした（その陣営に入っていますか）'); } };
+  // ---------- 配信中 ----------
+  async function lvLoad() {
+    try {
+      const L = await N.live();
+      $('lvT').innerHTML = L.length ? '<tr><th>名前</th><th>URL</th><th>ひとこと</th><th>出した時刻</th><th></th></tr>' + L.map(x => `<tr><td>${esc(x.n)}</td><td><a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.u)}</a></td><td>${esc(x.m)}</td><td>${x.t ? new Date(x.t).toLocaleString('ja-JP') : ''}</td><td><button class="warn" data-lv="${esc(x.id)}">消す</button></td></tr>`).join('') : '<tr><td class="note">いまは出していません。</td></tr>';
+      for (const b of $('lvT').querySelectorAll('[data-lv]')) b.onclick = async () => { try { await N.liveDel(b.dataset.lv); log('配信中から消しました'); lvLoad(); } catch (e) { log('消せませんでした（緑の同盟に入っていますか）'); } };
+    } catch (e) { $('lvT').innerHTML = '<tr><td class="note">読みこめませんでした（ルールに配信中の決まりが入っていますか）</td></tr>'; }
+  }
+  $('lvAdd').onclick = async () => {
+    const n = $('lvN').value, u = $('lvU').value, m = $('lvM').value;
+    if (!n.trim() || !N.liveUrl(u)) { log('名前と、https:// から始まる配信のURLを入れてください'); return; }
+    if (!admins.g) { log('先に「緑の同盟」に入ってください'); return; }
+    try { await N.liveAdd(n, u, m); log('配信中に出しました：' + n.trim()); $('lvN').value = $('lvU').value = $('lvM').value = ''; lvLoad(); } catch (e) { log('出せませんでした（緑の同盟に入っていますか・ルールは新しいものですか）'); }
+  };
+  lvLoad();
   $('endSet').onclick = async () => {
     const w = $('win').value, fs = ['g', 'r', 'b'].filter(f => N.ready(f));
     const miss = fs.filter(f => !admins[f]); if (miss.length) { log('まだ入っていない陣営があります：' + miss.map(k => NAMES[k]).join('・')); return; }

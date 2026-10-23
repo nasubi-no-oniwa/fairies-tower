@@ -372,6 +372,28 @@
       ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
       ".validate": "newData.isString() && newData.val().length <= 300"
     },
+    "ft_live": {
+      ".read": true,
+      ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
+      "$id": {
+        ".validate": "newData.hasChildren(['n', 'u', 't'])",
+        "n": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+        },
+        "u": {
+          ".validate": "newData.isString() && newData.val().beginsWith('https://') && newData.val().length <= 308"
+        },
+        "m": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "t": {
+          ".validate": "newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "ft_ckpt": {
       ".read": true,
       ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",

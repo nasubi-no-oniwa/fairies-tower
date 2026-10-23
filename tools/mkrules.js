@@ -130,6 +130,8 @@ const rules = {
     ft_gboard_r: { $id: { $uid: { '.write': "auth != null && auth.uid === $uid && !data.exists() && newData.val() === true" } } },
     ft_pin: { '.read': true, '.write': ADMIN, '.validate': "newData.isString() && newData.val().length <= 300" },
     ft_gpin: { '.read': true, '.write': ADMIN, '.validate': "newData.isString() && newData.val().length <= 300" },
+    // 配信中の人（管理人だけが出し入れ。緑のデータベースで使う）
+    ft_live: { '.read': true, '.write': ADMIN, $id: { '.validate': "newData.hasChildren(['n', 'u', 't'])", n: { '.validate': "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" }, u: { '.validate': "newData.isString() && newData.val().beginsWith('https://') && newData.val().length <= 308" }, m: { '.validate': "newData.isString() && newData.val().length <= 30" }, t: { '.validate': "newData.val() === now" }, $other: { '.validate': false } } },
     ft_ckpt: { '.read': true, '.write': ADMIN, '.validate': "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
   },
 };

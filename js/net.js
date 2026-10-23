@@ -330,6 +330,18 @@
   // =============================================
   //  管理（管理のかぎを、この端末の匿名IDに登録してから）
   // =============================================
+  // ---------- 配信中の人（ft_live/{id}：{ n：名前, u：配信のURL, m：ひとこと, t }。緑のデータベースに置く。書けるのは管理人だけ） ----------
+  const liveTxt = (s, n) => String(s || '').replace(/[<>&"'\\\n\r\t]/g, '').trim().slice(0, n);
+  const liveUrl = s => { s = String(s || '').trim(); return /^https:\/\/[^\s<>"']{3,300}$/.test(s) ? s : ''; };
+  N.liveUrl = liveUrl;
+  N.live = async function () {
+    if (!N.ready('g')) return [];
+    const v = await rest('ft_live', null, 'g') || {};
+    return Object.entries(v).filter(([, x]) => x && typeof x === 'object').map(([id, x]) => ({ id, n: liveTxt(x.n, 20), u: liveUrl(x.u), m: liveTxt(x.m, 30), t: +x.t || 0 }))
+      .filter(x => x.n && x.u).sort((a, b) => b.t - a.t).slice(0, 10);
+  };
+  N.liveAdd = async function (n, u, m) { n = liveTxt(n, 20); u = liveUrl(u); m = liveTxt(m, 30); if (!n || !u) throw new Error('名前とURL（https://）を入れてください'); await restWrite('PUT', 'ft_live/' + pid(), { n, u, m, t: SV }, 'g'); };
+  N.liveDel = id => update({ ['ft_live/' + id]: null }, 'g');
   N.adminLogin = async function (key, f) { await N.token(false, f); await restWrite('PUT', 'ft_admins/' + N.uid(f), String(key), f); return N.uid(f); };
   N.resetFloor = (f, F) => update({ ['ft_cells/' + f]: null, ['ft_dlog/' + f]: null, ['ft_drec/' + f]: null, ['ft_help/' + f]: null, ['ft_rm/' + f]: { t: SV }, ['ft_reset/' + f]: { t: SV } }, F);
   // 自分の屍が、何人の足場になったか（list：[{ a：陣営, f：層, k：場所 }]）。陣営ごとのデータベースから、1つずつ読む（軽い）

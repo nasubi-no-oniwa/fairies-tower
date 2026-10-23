@@ -22,6 +22,14 @@
   // [英語, 中国語（繁体字）, 韓国語]
   const D = {
     '#FairiesTower #gamedev #ゲーム制作': ['#FairiesTower #indiegame #gamedev', '#FairiesTower #獨立遊戲 #indiegame', '#FairiesTower #인디게임 #indiegame'],
+    '🔴 配信中': ['🔴 LIVE now', '🔴 直播中', '🔴 방송 중'],
+    '配信中': ['Live now', '直播中', '방송 중'],
+    'タップすると、配信のページが開きます。': ['Tap to open the stream.', '點一下即可開啟直播頁面。', '탭하면 방송 페이지가 열려요.'],
+    'いまは配信中の人はいません。': ['No one is streaming right now.', '目前沒有人在直播。', '지금은 방송 중인 사람이 없어요.'],
+    '🔴 {0}さんが配信を始めました': ['🔴 {0} just went live', '🔴 {0} 開始直播了', '🔴 {0} 님이 방송을 시작했어요'],
+    '右上の🔴から見に行けます': ['Tap 🔴 at the top right to watch', '點右上角的🔴去看看', '오른쪽 위 🔴에서 볼 수 있어요'],
+    'ニコニコ': ['Niconico', 'Niconico', '니코니코'],
+    'ツイキャス': ['TwitCasting', 'TwitCasting', '트윗캐스팅'],
     'まず妖精をえらぶ': ['Choose your fairy', '先選擇妖精', '먼저 요정을 고르자'],
     '頂上に到達': ['Summit reached', '已抵達頂端', '정상 도달'],
     '第{0}層': ['Floor {0}', '第{0}層', '{0}층'],

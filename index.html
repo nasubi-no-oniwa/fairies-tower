@@ -162,6 +162,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .card::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 233, 168, .7), transparent); }
 .card.wide { max-width: 520px; }
 .card.narrow { max-width: 340px; }
+/* 配信中 */
+.live { appearance: none; display: block; margin: 0 auto 10px; padding: 8px 18px; border-radius: 999px; border: 1px solid #ff6a5a; background: rgba(70, 14, 14, .72); color: #fff; font: 700 14px var(--body); letter-spacing: .04em; animation: livePulse 1.6s ease-in-out infinite; }
+.live[hidden], .liveHb[hidden] { display: none; }
+.liveHb { border-color: #ff6a5a; animation: livePulse 1.6s ease-in-out infinite; }
+@keyframes livePulse { 50% { box-shadow: 0 0 0 4px rgba(255, 106, 90, .3); } }
+#liveList { display: grid; gap: 8px; margin: 10px 0; }
+#liveList a { display: block; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(6, 16, 22, .7); color: inherit; text-decoration: none; }
+#liveList a b { color: #ffe9a8; margin-right: 8px; } #liveList a span { font-size: 12px; opacity: .75; }
+#liveList a small { display: block; margin-top: 3px; font-size: 12px; opacity: .8; word-break: break-all; }
 .over.sheet { place-items: end center; padding-bottom: 0; }
 .over.sheet .card { border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 560px; }
 .over.sheet.on .card { animation: sheetIn .32s cubic-bezier(.2, .9, .25, 1); }
@@ -348,6 +357,7 @@ select.tg option { background: #0d2a2e; color: var(--ink); }
       <div class="sub" id="tSub"></div>
     </div>
     <div class="help" id="tHelp" hidden></div>
+    <button class="live" id="tLive" hidden>🔴 配信中</button>
     <button class="me" id="meCard" aria-label="妖精をえらぶ">
       <canvas id="meSp" width="16" height="16" aria-hidden="true"></canvas>
       <span class="meTx"><small id="meFac">あなたの妖精</small><b id="meName">まだえらんでいない</b><span id="meSk"></span></span>
@@ -374,7 +384,7 @@ select.tg option { background: #0d2a2e; color: var(--ink); }
       </div>
       <div>
         <div id="hStats">この層の死 <b id="hDead">0</b><br><span id="hFac"></span></div>
-        <div class="hbtns"><button class="hb" id="gShare" aria-label="Xに投稿">𝕏</button><button class="hb" id="gHow" aria-label="あそびかた">？</button><button class="hb" id="gBack" aria-label="一時停止">Ⅱ</button></div>
+        <div class="hbtns"><button class="hb liveHb" id="gLive" hidden aria-label="配信中">🔴</button><button class="hb" id="gShare" aria-label="Xに投稿">𝕏</button><button class="hb" id="gHow" aria-label="あそびかた">？</button><button class="hb" id="gBack" aria-label="一時停止">Ⅱ</button></div>
       </div>
     </div>
     <div id="pad">
@@ -532,6 +542,12 @@ select.tg option { background: #0d2a2e; color: var(--ink); }
   </div></div>
 
   <!-- ========== 一時停止 ========== -->
+  <div class="over blur" id="oLive"><div class="card narrow">
+    <h2>🔴 配信中</h2>
+    <div id="liveList"></div>
+    <p class="note">タップすると、配信のページが開きます。</p>
+    <button class="go" id="liveClose">閉じる</button>
+  </div></div>
   <div class="over blur" id="oPause"><div class="card narrow">
     <h2>一時停止</h2>
     <p class="note" id="psInfo"></p>
@@ -553,14 +569,15 @@ select.tg option { background: #0d2a2e; color: var(--ink); }
 </div>
 <script src="js/config.js?v=4"></script>
 <script src="js/engine.js?v=15"></script>
-<script src="js/i18n.js?v=15"></script>
+<script src="js/i18n.js?v=16"></script>
 <script src="js/art.js?v=6"></script>
 <script src="js/verify.js?v=7"></script>
-<script src="js/net.js?v=13"></script>
+<script src="js/net.js?v=14"></script>
 <script src="js/sound.js?v=6"></script>
 <script src="js/main.js?v=15"></script>
 <script src="js/ui.js?v=16"></script>
 <script src="js/board.js?v=13"></script>
+<script src="js/live.js?v=1"></script>
 <script>FT.applyDOM && FT.applyDOM();</script>
 <script>
 // スマホで続けてタップしたときに、画面が拡大されないようにする（iPhoneは「拡大しない」の設定を無視するため）
