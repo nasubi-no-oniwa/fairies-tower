@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Fairies' Tower</title>
-<meta name="description" content="3つの陣営に分かれて、死ぬと残る屍を足場に、100層の世界樹のてっぺんを目指す。">
+<meta name="description" content="死ぬと残る屍を足場に、3つの陣営で100層の世界樹を昇る。Climb a 100-floor World Tree on the bodies of the fallen.">
 <meta property="og:title" content="Fairies' Tower">
-<meta property="og:description" content="3つの陣営に分かれて、死ぬと残る屍を足場に、100層の世界樹のてっぺんを目指す。">
+<meta property="og:description" content="死ぬと残る屍を足場に、3つの陣営で100層の世界樹を昇る。Climb a 100-floor World Tree on the bodies of the fallen.">
 <meta name="theme-color" content="#08141a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308141a'/%3E%3Cpath d='M32 58V20' stroke='%234a3324' stroke-width='8'/%3E%3Cellipse cx='22' cy='22' rx='12' ry='6' fill='%237fe3c9' transform='rotate(-30 22 22)'/%3E%3Cellipse cx='42' cy='22' rx='12' ry='6' fill='%237fe3c9' transform='rotate(30 42 22)'/%3E%3Ccircle cx='32' cy='14' r='5' fill='%23f3e6d2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -226,6 +226,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .help .hl1 b { font-family: var(--display); font-size: 22px; color: #ffe9a8; margin: 0 2px; text-shadow: 0 0 12px rgba(255, 233, 168, .4); }
 .help .hl1 em { font-style: normal; font-size: 12px; font-weight: 700; color: #04201a; background: #a8f4dc; border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; animation: beckon 1.8s ease-in-out infinite; }
 .help .hl2 { font-size: 12px; color: var(--dim); }
+/* ---- ことばごとの書体 ---- */
+:root[data-lang="en"] { --display: "Cinzel", "Kaisei Decol", serif; --body: "Nunito", "Zen Kaku Gothic New", system-ui, sans-serif; }
+:root[data-lang="zh"] { --display: "Noto Serif TC", "Kaisei Decol", serif; --body: "Noto Sans TC", "Zen Kaku Gothic New", system-ui, sans-serif; }
+:root[data-lang="ko"] { --display: "Noto Serif KR", "Kaisei Decol", serif; --body: "Noto Sans KR", "Zen Kaku Gothic New", system-ui, sans-serif; }
+:root[data-lang="en"] #title h1 .l2, :root[data-lang="en"] .spL .l2 { letter-spacing: .04em; }
+:root[data-lang="en"] .fbK, :root[data-lang="en"] .kick, :root[data-lang="en"] .spK { letter-spacing: .3em; }
+select.tg { color: var(--ink); padding: 0 12px; text-align: center; }
+select.tg option { background: #0d2a2e; color: var(--ink); }
 #clBig b { color: #ffe9a8; text-shadow: 0 0 16px rgba(255, 233, 168, .5); }
 @media (prefers-reduced-motion: reduce) { .over.on, .over.on .card, .fac, .sp .in, .go::after, #splash * { animation: none !important; transition: none !important; } #splash .spK, #splash .spL, #splash .spT { opacity: 1; } }
 </style>
@@ -383,6 +391,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
     <h2>設定</h2>
     <div class="set"><span>音</span><button class="tg" id="bSnd">♪ 音あり</button></div>
     <div class="set"><span>画質</span><button class="tg" id="bQ">きれい</button></div>
+    <div class="set"><span>言語</span><select class="tg" id="bLang" aria-label="言語 / Language"></select></div>
     <p class="note">「かるい」にすると光の筋をへらして、古い端末でも動きやすくなります。</p>
     <div class="credit">
       <b>クレジット</b>
@@ -415,12 +424,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 </div>
 <script src="js/config.js?v=4"></script>
 <script src="js/engine.js?v=7"></script>
+<script src="js/i18n.js?v=9"></script>
 <script src="js/art.js?v=6"></script>
 <script src="js/verify.js?v=7"></script>
 <script src="js/net.js?v=8"></script>
 <script src="js/sound.js?v=6"></script>
-<script src="js/main.js?v=8"></script>
-<script src="js/ui.js?v=6"></script>
+<script src="js/main.js?v=9"></script>
+<script src="js/ui.js?v=9"></script>
+<script>FT.applyDOM && FT.applyDOM();</script>
 <script>
 // スマホで続けてタップしたときに、画面が拡大されないようにする（iPhoneは「拡大しない」の設定を無視するため）
 (function () {

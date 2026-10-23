@@ -9,14 +9,14 @@
   FT.VER = '7';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fmt = n => Number(n || 0).toLocaleString('ja-JP');
+  const T = FT.T, fmt = n => Number(n || 0).toLocaleString(FT.LOCALE || 'ja-JP');
   const GAME_URL = G.FT_GAME_URL || location.href.split(/[?#]/)[0];
-  const TAGS = '#FairiesTower #gamedev #ゲーム制作';
+  const TAGS = T('#FairiesTower #gamedev #ゲーム制作');
   const OFFLINE = !N.FACS.some(f => N.ready(f));
   // ---------- 名前（毎回ちがう） ----------
   const PRE = ['うたう', 'ちいさな', 'あおい', 'ねむれる', 'ほしふる', 'さいごの', 'つきなき', 'あさやけの', 'ふるえる', 'みどりの', 'はじめての', 'ゆうぐれの', 'まよえる', 'しろい', 'かけだしの', 'ひとりの', 'わすれられた', 'こごえた', 'ねぼけた', 'まっすぐな', 'おくびょうな', 'むこうみずな', 'うつろな', 'とおくの'];
   const NAME = ['ルカ', 'イオ', 'ナギ', 'ツバキ', 'ハク', 'セツ', 'マオ', 'リク', 'モモ', 'スズ', 'ヒバリ', 'フウ', 'コハ', 'ウタ', 'ソラ', 'アオ', 'シノ', 'テオ', 'ニコ', 'ミナ', '旅人', '見習い', '弓兵', '吟遊詩人', '鍛冶屋', '薬師', '巡礼者', '学者'];
-  const newName = () => (PRE[Math.floor(Math.random() * PRE.length)] + NAME[Math.floor(Math.random() * NAME.length)]).slice(0, 12);
+  const newName = () => { const L = FT.NAMES; if (L) { for (let i = 0; i < 30; i++) { const s = L.pre[Math.floor(Math.random() * L.pre.length)] + L.sep + L.name[Math.floor(Math.random() * L.name.length)]; if (s.length <= 12) return s; } return L.name[0]; } return (PRE[Math.floor(Math.random() * PRE.length)] + NAME[Math.floor(Math.random() * NAME.length)]).slice(0, 12); };
   // ---------- 自分の記録（この端末） ----------
   const ME = Object.assign({ sp: null, best: {}, dead: 0, tut: 0, ok: {}, ng: {}, lok: {}, xid: '', mine: [], helpSeen: 0 }, N.store('ft_me') || {});
   const saveMe = () => N.store('ft_me', ME);
@@ -24,7 +24,7 @@
   if (ME.sp !== null && ME.sp !== undefined) N.fac = fidOf(ME.sp);
   // ---------- 層 ----------
   let FLOORS = null; const LV = {};
-  async function getFloors() { if (FLOORS) return FLOORS; const r = await fetch('data/floors.json?v=' + FT.VER); FLOORS = await r.json(); return FLOORS; }
+  async function getFloors() { if (FLOORS) return FLOORS; const r = await fetch('data/floors.json?v=' + FT.VER); FLOORS = await r.json(); for (const F of FLOORS) F.name = FT.TF(F.f, F.name); return FLOORS; }
   function getLevel(f) { const key = N.fac + f; if (!LV[key]) LV[key] = Object.assign({}, FLOORS[f - 1]); return LV[key]; }
   const themeSong = lv => lv.f === 100 ? 10 : (lv.th && lv.th.length ? lv.th[0] + 1 : 0);
   // =============================================
@@ -124,25 +124,25 @@
     paint() {
       const L = W.latest, lv = FLOORS && FLOORS[L - 1], has = ME.sp !== null && ME.sp !== undefined;
       const F = has ? FT.FAC[facOf(ME.sp)] : null;
-      $('tLatest').innerHTML = !has ? 'まず妖精をえらぶ<small></small>' : W.done ? `頂上に到達<small>${esc(F.name)}</small>` : `第${L}層<small>${esc(lv ? lv.name : '')}</small>`;
+      $('tLatest').innerHTML = !has ? T('まず妖精をえらぶ') + '<small></small>' : W.done ? `${T('頂上に到達')}<small>${esc(F.name)}</small>` : `${T('第{0}層', L)}<small>${esc(lv ? lv.name : '')}</small>`;
       $('tLatest').style.color = F ? F.color : '';
       $('tDead').textContent = fmt(OFFLINE ? ME.dead : facDead());
       const subs = [];
       if (has) {
-        subs.push(`${F.name}の最前線${OFFLINE ? '（この端末だけで遊んでいます）' : ''}`);
-        const op = L > 1 ? opener(L - 1) : null; if (op) subs.push(`第${L - 1}層を最初に越えたのは「${op.n}」${op.x ? '（@' + op.x + '）' : ''}`);
-        const b = ctxFor(L).maxB; if (b > 0) subs.push(`追い上げ中：翅が${b * 3}%長くもつ`);
-        if (L === 100 && !W.done) subs.push(ctxFor(100).door ? '頂上の扉は開いている' : `頂上の扉は閉じている（ほかの陣営のどれかが第${V.DOOR_AT}層に着くと開く）`);
+        subs.push(T('{0}の最前線', F.name) + (OFFLINE ? T('（この端末だけで遊んでいます）') : ''));
+        const op = L > 1 ? opener(L - 1) : null; if (op) subs.push(T('第{0}層を最初に越えたのは「{1}」', L - 1, op.n) + (op.x ? '（@' + op.x + '）' : ''));
+        const b = ctxFor(L).maxB; if (b > 0) subs.push(T('追い上げ中：翅が{0}%長くもつ', b * 3));
+        if (L === 100 && !W.done) subs.push(ctxFor(100).door ? T('頂上の扉は開いている') : T('頂上の扉は閉じている（ほかの陣営のどれかが第{0}層に着くと開く）', V.DOOR_AT));
       }
-      $('tSub').textContent = subs.join('　／　');
+      $('tSub').textContent = subs.join(T('　／　'));
       for (const b of document.querySelectorAll('.sp')) b.classList.toggle('on', +b.dataset.sp === ME.sp);
-      if (has) { const sp = FT.SP[ME.sp]; $('spInfo').innerHTML = `<b style="color:${sp.color}">${esc(sp.name)}</b>（${esc(F.name)}）　<b>${esc(sp.skill)}</b><br>${esc(sp.how)}`; }
-      else $('spInfo').textContent = '9つの妖精から1つをえらぶ。妖精の色で、どの陣営に入るかが決まる。陣営ごとに、べつべつの世界樹を昇る。';
+      if (has) { const sp = FT.SP[ME.sp]; $('spInfo').innerHTML = `<b style="color:${sp.color}">${esc(sp.name)}</b> (${esc(F.name)})　<b>${esc(sp.skill)}</b><br>${esc(sp.how)}`; }
+      else $('spInfo').textContent = T('9つの妖精から1つをえらぶ。妖精の色で、どの陣営に入るかが決まる。陣営ごとに、べつべつの世界樹を昇る。');
       const end = ended();
       $('endBanner').hidden = !end;
-      if (end) { const wf = FT.FAC[N.FACS.indexOf(end.w)]; $('endBanner').innerHTML = `<b style="color:${wf ? wf.color : ''}">${esc(wf ? wf.name : '')}</b>が、世界樹の頂にたどり着いた。<br>ゲームは終わりました。いまの世界樹は、そのときのまま残っています。<br>これから昇っても、屍は増えません。`; }
+      if (end) { const wf = FT.FAC[N.FACS.indexOf(end.w)]; $('endBanner').innerHTML = T('{0}が、世界樹の頂にたどり着いた。', `<b style="color:${wf ? wf.color : ''}">${esc(wf ? wf.name : '')}</b>`) + '<br>' + T('ゲームは終わりました。いまの世界樹は、そのときのまま残っています。') + '<br>' + T('これから昇っても、屍は増えません。'); }
       $('bGo').disabled = !has;
-      $('bGo').textContent = !has ? '妖精をえらんでください' : W.done ? '頂上をながめる' : `第${L}層から昇る${end ? '（記録は残りません）' : ''}`;
+      $('bGo').textContent = !has ? T('妖精をえらんでください') : W.done ? T('頂上をながめる') : T('第{0}層から昇る', L) + (end ? T('（記録は残りません）') : '');
       drawTree($('tree'), 1);
       paintHelp();
       if (FT.UI && FT.UI.onPaint) FT.UI.onPaint();
@@ -166,7 +166,7 @@
     const crown = g.createRadialGradient(cx, top, 2, cx, top, 60 * u); crown.addColorStop(0, 'rgba(255,240,190,.55)'); crown.addColorStop(1, 'rgba(255,240,190,0)'); g.fillStyle = crown; g.fillRect(cx - 70 * u, top - 40 * u, 140 * u, 90 * u);
     // 目盛り
     g.font = `${10 * u}px ${getComputedStyle(document.body).fontFamily}`; g.textAlign = 'left'; g.fillStyle = 'rgba(191,233,255,.45)';
-    for (const f of [1, 25, 50, 75, 100]) { const y = yOf(f); g.fillRect(10 * u, y, Wd - 20 * u, .6 * u); g.fillText(f === 100 ? '頂' : `第${f}層`, 10 * u, y - 3 * u); }
+    for (const f of [1, 25, 50, 75, 100]) { const y = yOf(f); g.fillRect(10 * u, y, Wd - 20 * u, .6 * u); g.fillText(f === 100 ? T('頂') : T('第{0}層', f), 10 * u, y - 3 * u); }
     // 3つの陣営
     N.FACS.forEach((F, i) => {
       const fc = FT.FAC[i], t = Math.min(101, W.tops[F] || 1), y = yOf(Math.min(100, t)), x = i === 0 ? cx - 26 * u : i === 1 ? cx + 4 * u : cx + 30 * u;
@@ -176,13 +176,13 @@
       g.textAlign = i === 0 ? 'right' : 'left'; g.font = `700 ${11 * u}px ${getComputedStyle(document.body).fontFamily}`;
       let ly = y - 8 * u; if (i === 2 && Math.abs(yOf(Math.min(100, W.tops.r || 1)) - y) < 16 * u) ly = yOf(Math.min(100, W.tops.r || 1)) - 8 * u + 15 * u;
       ly = Math.max(top + 4 * u, Math.min(bot - 2 * u, ly));
-      g.fillText(`${fc.name} ${t > 100 ? '頂' : '第' + t + '層'}`, lx, ly + 4 * u);
+      g.fillText(`${fc.name} ${t > 100 ? T('頂') : T('第{0}層', t)}`, lx, ly + 4 * u);
       g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(lx, ly); g.stroke();
     });
     // あなた
     if (ME.sp !== null && ME.sp !== undefined) {
       const best = ME.best[N.fac] || 0;
-      if (best) { const fi = N.FACS.indexOf(N.fac), x = fi === 0 ? cx - 26 * u : fi === 1 ? cx + 4 * u : cx + 30 * u, y = yOf(best); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(x - 12 * u, y); g.lineTo(x - 20 * u, y - 5 * u); g.lineTo(x - 20 * u, y + 5 * u); g.fill(); g.textAlign = 'right'; g.font = `700 ${10 * u}px ${getComputedStyle(document.body).fontFamily}`; g.fillText('あなた', x - 23 * u, y + 3.5 * u); }
+      if (best) { const fi = N.FACS.indexOf(N.fac), x = fi === 0 ? cx - 26 * u : fi === 1 ? cx + 4 * u : cx + 30 * u, y = yOf(best); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(x - 12 * u, y); g.lineTo(x - 20 * u, y - 5 * u); g.lineTo(x - 20 * u, y + 5 * u); g.fill(); g.textAlign = 'right'; g.font = `700 ${10 * u}px ${getComputedStyle(document.body).fontFamily}`; g.fillText(T('あなた'), x - 23 * u, y + 3.5 * u); }
     }
   }
   // =============================================
@@ -203,7 +203,7 @@
     const lv = getLevel(f); lv._ctx = vctxFor(f);
     let cor = new Map();
     if (OFFLINE) cor = localCor(f);
-    else { try { cor = await N.loadCells(lv); } catch (e) { toast('みんなの屍を読みこめませんでした', 'この端末の分だけで遊べます', 2600); } }
+    else { try { cor = await N.loadCells(lv); } catch (e) { toast(T('みんなの屍を読みこめませんでした'), T('この端末の分だけで遊べます'), 2600); } }
     $('loading').classList.remove('on');
     S.lv = lv; S.cor = cor; S.nextCor = null; S.mine = new Map(); S.deathsHere = 0; S.fx = [];
     if (!opt.watch) loadHelpFloor(f);
@@ -212,19 +212,19 @@
     $('game').classList.toggle('watching', S.watch);
     if (S.watch) { startWatch(lv); return; }
     const F = FT.FAC[facOf(ME.sp)], sp = FT.SP[ME.sp];
-    $('hFloor').innerHTML = `第${f}層<small>${esc(lv.name)}</small>`;
-    $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>・<span style="color:${sp.color === '#3a3f4a' ? '#9aa3b4' : sp.color}">${esc(sp.name)}</span>`;
-    $('skName').textContent = sp.sk === 'none' ? '（いつも）' : sp.skill;
+    $('hFloor').innerHTML = `${T('第{0}層', f)}<small>${esc(lv.name)}</small>`;
+    $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>${T('・')}<span style="color:${sp.color === '#3a3f4a' ? '#9aa3b4' : sp.color}">${esc(sp.name)}</span>`;
+    $('skName').textContent = sp.sk === 'none' ? T('（いつも）') : sp.skill;
     $('bSk').classList.toggle('off', sp.sk === 'none'); $('bSk').hidden = sp.sk === 'none';
     if (!ME.best[N.fac] || ME.best[N.fac] < f) { ME.best[N.fac] = f; saveMe(); }
     updateHud();
     SND.bgm(themeSong(lv));
     spawn(true);
     S.enterAt = performance.now();
-    const thTxt = lv.th && lv.th.length && lv.f > 5 ? `${lv.th.map(t => FT.SP[t].name).join('・')}が得意な層` : '';
+    const thTxt = lv.th && lv.th.length && lv.f > 5 ? T('{0}が得意な層', lv.th.map(t => FT.SP[t].name).join(T('・'))) : '';
     if (!ME.tut) { ME.tut = 1; saveMe(); openHow(); }
     else if (FT.UI.banner) FT.UI.banner(f, lv.name, thTxt);
-    else if (thTxt) toast(`第${f}層　${lv.name}`, thTxt, 2400);
+    else if (thTxt) toast(`${T('第{0}層', f)}　${lv.name}`, thTxt, 2400);
   }
   function spawn(first) {
     S.used = new Set();
@@ -309,12 +309,12 @@
     if (!list.length || !HELP.size) { el.hidden = true; return; }
     el.hidden = false;
     const best = list.slice().sort((a, b) => b.h - a.h)[0], diff = sum - (ME.helpSeen || 0);
-    const fn = a => { const F = FT.FAC[N.FACS.indexOf(a)]; return F ? `<span style="color:${F.color}">${esc(F.name)}</span>の` : ''; };
-    el.innerHTML = `<div class="hl1">あなたの屍は、のべ <b>${fmt(sum)}</b>人の足場になった${diff > 0 ? `<em>＋${fmt(diff)}</em>` : ''}</div>` +
-      (best && best.h > 0 ? `<div class="hl2">いちばん役に立った屍：${fn(best.a)}第${best.f}層「${esc(best.n)}」（${fmt(best.h)}人）</div>` : `<div class="hl2">まだだれも乗っていない。あとから来る仲間を待とう</div>`);
+    const fn = a => { const F = FT.FAC[N.FACS.indexOf(a)]; return F ? T('{0}の', `<span style="color:${F.color}">${esc(F.name)}</span>`) : ''; };
+    el.innerHTML = `<div class="hl1">${T('あなたの屍は、のべ {0}人の足場になった', `<b>${fmt(sum)}</b>`)}${diff > 0 ? `<em>＋${fmt(diff)}</em>` : ''}</div>` +
+      (best && best.h > 0 ? `<div class="hl2">${T('いちばん役に立った屍：{0}第{1}層「{2}」（{3}人）', fn(best.a), best.f, esc(best.n), fmt(best.h))}</div>` : `<div class="hl2">${T('まだだれも乗っていない。あとから来る仲間を待とう')}</div>`);
     if (diff !== 0) { clearTimeout(paintHelp.t); paintHelp.t = setTimeout(() => { ME.helpSeen = sum; saveMe(); }, 4000); }
   }
-  const KIND = { wing: '翅が尽きて、力尽きた', drown: '水の中で、息が尽きた', spear: '幹の槍に貫かれた', fire: '炎に焼かれた', burn: '燃える枝で焼かれた', moth: '蛾に触れた', bee: '蜂に刺された', thorn: '見えない棘に刺さった', fruit: '落ちてきた実に打たれた' };
+  const KIND = { wing: T('{0}は翅が尽きて、力尽きた'), drown: T('{0}は水の中で、息が尽きた'), spear: T('{0}は幹の槍に貫かれた'), fire: T('{0}は炎に焼かれた'), burn: T('{0}は燃える枝で焼かれた'), moth: T('{0}は蛾に触れた'), bee: T('{0}は蜂に刺された'), thorn: T('{0}は見えない棘に刺さった'), fruit: T('{0}は落ちてきた実に打たれた') };
   function onDie() {
     const run = S.run, pl = run.place, lv = S.lv, name = S.name, f = lv.f;
     SND.se('die'); S.shake = .5; S.dieAt = performance.now();
@@ -324,10 +324,10 @@
     let sub = '';
     if (pl.k >= 0) {
       const c = S.cor.get(pl.k);
-      if (pl.merge && c) { c.n++; c.glow = 1; sub = `「${c.name}」の屍に合流した（${fmt(c.n)}人が眠る）`; setTimeout(() => SND.se('merge'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, c.name || name); }
-      else { S.cor.set(pl.k, { n: 1, s: ME.sp, name, t: Date.now(), glow: 1, mine: 1 }); S.mine.set(pl.k, S.cor.get(pl.k)); sub = 'ここが、あとから来る仲間の足場になる'; setTimeout(() => SND.se('pile'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, name); }
-    } else sub = '根もとで倒れた。屍は残らない';
-    toast(`${name}は${KIND[run.dead] || '力尽きた'}`, sub, 1700);
+      if (pl.merge && c) { c.n++; c.glow = 1; sub = T('「{0}」の屍に合流した（{1}人が眠る）', c.name, fmt(c.n)); setTimeout(() => SND.se('merge'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, c.name || name); }
+      else { S.cor.set(pl.k, { n: 1, s: ME.sp, name, t: Date.now(), glow: 1, mine: 1 }); S.mine.set(pl.k, S.cor.get(pl.k)); sub = T('ここが、あとから来る仲間の足場になる'); setTimeout(() => SND.se('pile'), 200); if (!OFFLINE && !ended()) rememberMine(f, pl.k, name); }
+    } else sub = T('根もとで倒れた。屍は残らない');
+    toast((KIND[run.dead] || T('{0}は力尽きた')).replace('{0}', name), sub, 1700);
     const m = Math.round(Math.max(0, Math.min(1, (lv.h - 1 - run.p.top) / (lv.h - 2.2))) * 1000);
     if (OFFLINE) saveLocalCor(f, S.cor);
     else if (!ended()) {
@@ -351,23 +351,23 @@
     const deadN = Math.max((W.stat[f] && W.stat[f].d) || 0, [...S.cor.values()].reduce((a, c) => a + (c.nAll || c.n), 0));
     const wasOpen = okFloor(f), isFirst = S.latest && !wasOpen;
     const F = FT.FAC[facOf(ME.sp)];
-    $('clBig').innerHTML = f === 100 ? `<b>${fmt(deadN)}</b>人の屍を越えて<br>世界樹の頂へ` : `<b>${fmt(deadN)}</b>人の屍を越えて<br>第${f}層突破！`;
-    $('clSub').textContent = `${S.name}（${F.name}）　${(ticks / 120).toFixed(1)}秒`;
+    $('clBig').innerHTML = T('{0}人の屍を越えて', `<b>${fmt(deadN)}</b>`) + '<br>' + (f === 100 ? T('世界樹の頂へ') : T('第{0}層突破！', f));
+    $('clSub').textContent = `${S.name} (${F.name})　${T('{0}秒', (ticks / 120).toFixed(1))}`;
     $('clFirst').hidden = true; $('clX').value = ME.xid || '';
     $('clNext').hidden = f >= 100;
-    $('clNext').textContent = `第${Math.min(100, f + 1)}層へ`;
+    $('clNext').textContent = T('第{0}層へ', Math.min(100, f + 1));
     $('clMsg').textContent = '';
     if (!ME.best[N.fac] || ME.best[N.fac] < Math.min(100, f + 1)) { ME.best[N.fac] = Math.min(100, f + 1); saveMe(); }
     S.clearInfo = { f, name: S.name, ticks, deadN, isFirst };
     setTimeout(() => { if (S.lv === lv) modal('oClear', 1); }, 1100);
-    if (OFFLINE) { ME.lok[f] = 1; saveMe(); computeLatest(); if (f === 100) $('clMsg').textContent = '世界樹の頂にたどり着いた（この端末だけの記録です）'; return; }
-    if (ended()) { $('clMsg').textContent = 'ゲームは終わっているので、記録は残りません'; return; }
-    $('clMsg').textContent = '記録を送っています…';
+    if (OFFLINE) { ME.lok[f] = 1; saveMe(); computeLatest(); if (f === 100) $('clMsg').textContent = T('世界樹の頂にたどり着いた（この端末だけの記録です）'); return; }
+    if (ended()) { $('clMsg').textContent = T('ゲームは終わっているので、記録は残りません'); return; }
+    $('clMsg').textContent = T('記録を送っています…');
     try {
       const r = await N.clear(lv, { name: S.name, rec: S.rec.str(), cor: S.startCor, ticks, s: ME.sp, b: S.opt.b, full: !wasOpen || f === 100, help: [...(S.used || [])] });
       const id = r && r.id; S.clearInfo.id = id; S.clearInfo.opened = !!(r && r.opened);
-      if (r && r.opened) { $('clFirst').hidden = false; $('clMsg').textContent = f === 100 ? `${F.name}が、世界樹の頂にたどり着いた！` : `第${f + 1}層が、いま開いた。あなたが一番乗り`; SND.se('open'); }
-      else $('clMsg').textContent = f === 100 ? '頂の碑に、あなたの名前が刻まれた' : (wasOpen ? '' : 'ひと足先に越えた仲間がいました。あなたの記録も残りました');
+      if (r && r.opened) { $('clFirst').hidden = false; $('clMsg').textContent = f === 100 ? T('{0}が、世界樹の頂にたどり着いた！', F.name) : T('第{0}層が、いま開いた。あなたが一番乗り', f + 1); SND.se('open'); }
+      else $('clMsg').textContent = f === 100 ? T('頂の碑に、あなたの名前が刻まれた') : (wasOpen ? '' : T('ひと足先に越えた仲間がいました。あなたの記録も残りました'));
       if (!wasOpen && id) {
         // 自分で越えたので、この端末では確かめずに開く
         const o = await N.rest('ft_open/' + f).catch(() => null);
@@ -375,17 +375,17 @@
       }
       const st = W.stat[f] = W.stat[f] || {}; st.c = (st.c || 0) + 1;
     } catch (e) {
-      $('clMsg').textContent = '記録を送れませんでした（混みあっているか、電波が弱いです）。';
+      $('clMsg').textContent = T('記録を送れませんでした（混みあっているか、電波が弱いです）。');
     }
   }
   $('clXsave').onclick = async () => {
     const x = N.cleanX($('clX').value), ci = S.clearInfo;
-    if (!x) { toast('IDの形がちがいます', '英数字と _ で15文字まで'); return; }
+    if (!x) { toast(T('IDの形がちがいます'), T('英数字と _ で15文字まで')); return; }
     ME.xid = x; saveMe();
-    if (!ci || !ci.id) { toast('記録を送っている途中です', '少し待ってもう一度'); return; }
-    try { await N.setXid(ci.f, ci.id, x, ci.opened); const v = (ME.ok[N.fac] || {})[ci.f]; if (v && v.id === ci.id) { v.x = x; saveMe(); } if (W.open[ci.f]) W.open[ci.f].x = x; $('clFirst').hidden = true; toast('碑に刻みました', '@' + x); } catch (e) { toast('書きこめませんでした', '15分をすぎると、書きこめません'); }
+    if (!ci || !ci.id) { toast(T('記録を送っている途中です'), T('少し待ってもう一度')); return; }
+    try { await N.setXid(ci.f, ci.id, x, ci.opened); const v = (ME.ok[N.fac] || {})[ci.f]; if (v && v.id === ci.id) { v.x = x; saveMe(); } if (W.open[ci.f]) W.open[ci.f].x = x; $('clFirst').hidden = true; toast(T('碑に刻みました'), '@' + x); } catch (e) { toast(T('書きこめませんでした'), T('15分をすぎると、書きこめません')); }
   };
-  $('clXskip').onclick = () => { $('clFirst').hidden = true; toast('名前だけが刻まれます'); };
+  $('clXskip').onclick = () => { $('clFirst').hidden = true; toast(T('名前だけが刻まれます')); };
   $('clNext').onclick = () => { modal('oClear', 0); startFloor(Math.min(100, S.lv.f + 1)); };
   $('clTitle').onclick = () => { modal('oClear', 0); toTitle(); };
   $('clShare').onclick = () => { openShare(S.clearInfo && S.clearInfo.f === 100 ? 'summit' : 'clear'); };
@@ -483,7 +483,7 @@
       if (c.shield && run.t - c.shield < 30) { b.globalAlpha = 1 - (run.t - c.shield) / 30; ART.dotEllipse(b, cx, cy - 4, 9, 9, 0, 'rgba(255,210,154,.6)', '#ffd29a'); b.globalAlpha = 1; }
       lights.push([c.x, c.y - .4, 1.8 + Math.min(1.4, n * .12), ART.hex(col), .75 + .5 * (src.glow || 0) + Math.min(.25, n * .02)]);
       const hN = S.watch ? 0 : HELP.get(mineKey(N.fac, lv.f, c.k)) || 0;
-      labels.push([c.x, c.y - 1.3 + bob / PXs, (n > 1 ? `${src.name || ''}　${fmt(n)}人` : (src.name || '')) + (hN > 0 ? `（${fmt(hN)}人の足場）` : '')]);
+      labels.push([c.x, c.y - 1.3 + bob / PXs, (n > 1 ? `${src.name || ''}　${T('{0}人', fmt(n))}` : (src.name || '')) + (hN > 0 ? T('（{0}人の足場）', fmt(hN)) : '')]);
     }
     // ---- 灰の足場 ----
     if (run.block) { const bk = run.block; ART.spr(b, 'stone', X(bk.x - 1.1), Y(bk.y) - 3, false, Math.round(2.2 * PXs), 12); }
@@ -538,7 +538,7 @@
     for (const e of S.fx) { if (!e.ring || e.life <= 0) continue; g.globalAlpha = e.life; g.strokeStyle = e.c; g.lineWidth = .08; g.beginPath(); g.arc(e.x, e.y, (1 - e.life / .6) * 5, 0, 7); g.stroke(); }
     g.globalAlpha = 1; S.fx = S.fx.filter(e => e.life > 0);
     // 頂上の扉
-    if (lv.door && vis(1.4, 3)) { const open = S.opt.door; g.fillStyle = open ? 'rgba(255,231,163,.25)' : '#3b2a12'; g.fillRect(1, .2, COLS - 2, 1.2); if (!open) { g.fillStyle = '#c9a14a'; for (let x = 1.5; x < COLS - 1; x += 1.2) g.fillRect(x, .2, .18, 1.2); g.fillRect(1, 1.25, COLS - 2, .15); } g.fillStyle = '#ffe7a3'; g.font = '700 .5px "Zen Kaku Gothic New", sans-serif'; g.textAlign = 'center'; g.fillText(open ? '頂上の扉は開いている' : `頂上の扉（ほかの陣営が第${V.DOOR_AT}層に着くと開く）`, 10, 2.2); }
+    if (lv.door && vis(1.4, 3)) { const open = S.opt.door; g.fillStyle = open ? 'rgba(255,231,163,.25)' : '#3b2a12'; g.fillRect(1, .2, COLS - 2, 1.2); if (!open) { g.fillStyle = '#c9a14a'; for (let x = 1.5; x < COLS - 1; x += 1.2) g.fillRect(x, .2, .18, 1.2); g.fillRect(1, 1.25, COLS - 2, .15); } g.fillStyle = '#ffe7a3'; g.font = '700 .5px "Zen Kaku Gothic New", sans-serif'; g.textAlign = 'center'; g.fillText(open ? T('頂上の扉は開いている') : T('頂上の扉（ほかの陣営が第{0}層に着くと開く）', V.DOOR_AT), 10, 2.2); }
     // 屍の名前
     g.font = '700 .34px "Zen Kaku Gothic New", sans-serif'; g.textAlign = 'center';
     for (const L of labels) { if (!L[2]) continue; const near = me ? Math.hypot(L[0] - me.x, L[1] - me.y) : 9; g.globalAlpha = near < 4 ? 1 : .55; g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(L[2], L[0] + .03, L[1] + .03); g.fillStyle = '#e9f3ef'; g.fillText(L[2], L[0], L[1]); }
@@ -608,11 +608,11 @@
   function shareInfo() {
     const F = ME.sp === null || ME.sp === undefined ? null : FT.FAC[facOf(ME.sp)];
     const ci = S.clearInfo;
-    if (shareMode === 'summit') return { F, head: '世界樹の頂にたどり着いた！', line: `Fairies' Tower 世界樹の頂にたどり着いた！（${F.name}）`, f: 100 };
-    if (shareMode === 'clear' && ci) return { F, head: `第${ci.f}層突破！`, line: `Fairies' Tower ${fmt(ci.deadN)}人の屍を越えて、第${ci.f}層突破！（${F.name}）`, f: ci.f };
-    if (shareMode === 'game' && S.lv) { const pct = Math.min(99, Math.floor(Math.max(0, 1 - (S.run.p.top - 1.2) / (S.lv.h - 2.2)) * 100)); return { F, head: `第${S.lv.f}層まで到達！`, line: `Fairies' Tower 第${S.lv.f}層まで到達！（${F.name}）`, f: S.lv.f, pct }; }
+    if (shareMode === 'summit') return { F, head: T('世界樹の頂にたどり着いた！'), line: `Fairies' Tower ${T('世界樹の頂にたどり着いた！')} (${F.name})`, f: 100 };
+    if (shareMode === 'clear' && ci) return { F, head: T('第{0}層突破！', ci.f), line: `Fairies' Tower ${T('{0}人の屍を越えて、第{1}層突破！', fmt(ci.deadN), ci.f)} (${F.name})`, f: ci.f };
+    if (shareMode === 'game' && S.lv) { const pct = Math.min(99, Math.floor(Math.max(0, 1 - (S.run.p.top - 1.2) / (S.lv.h - 2.2)) * 100)); return { F, head: T('第{0}層まで到達！', S.lv.f), line: `Fairies' Tower ${T('第{0}層まで到達！', S.lv.f)} (${F.name})`, f: S.lv.f, pct }; }
     const f = F ? Math.max(ME.best[N.fac] || 1, 1) : W.latest;
-    return { F, head: `第${f}層まで到達！`, line: F ? `Fairies' Tower 第${f}層まで到達！（${F.name}）` : `Fairies' Tower`, f };
+    return { F, head: T('第{0}層まで到達！', f), line: F ? `Fairies' Tower ${T('第{0}層まで到達！', f)} (${F.name})` : `Fairies' Tower`, f };
   }
   const shareText = () => `${shareInfo().line}\n${GAME_URL}\n${TAGS}`;
   function drawShare(c) {
@@ -626,7 +626,7 @@
     x.textAlign = 'left'; x.fillStyle = '#e9f3ef'; x.font = `700 64px "Kaisei Decol", serif`; x.fillText("Fairies' Tower", 620, 150);
     x.fillStyle = info.F ? info.F.color : '#7fe3c9'; x.font = `700 58px "Kaisei Decol", serif`; x.fillText(info.head, 620, 290);
     if (info.F) { x.font = `700 36px ${font}`; x.fillText(info.F.name, 620, 360); }
-    x.fillStyle = '#93aaa3'; x.font = `28px ${font}`; x.fillText('3つの陣営で、', 620, 440); x.fillText('世界樹のてっぺんを目指す', 620, 480); x.fillText('#FairiesTower', 620, 540);
+    x.fillStyle = '#93aaa3'; x.font = `28px ${font}`; x.fillText(T('3つの陣営で、'), 620, 440); x.fillText(T('世界樹のてっぺんを目指す'), 620, 480); x.fillText('#FairiesTower', 620, 540);
   }
   function openShare(mode) { shareMode = mode || 'title'; drawShare($('shImg')); $('shText').value = shareText(); modal('oShare', 1); }
   $('shPost').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText()), '_blank', 'noopener'); };
@@ -640,20 +640,20 @@
   async function openStone(tab) {
     modal('oStone', 1);
     for (const b of document.querySelectorAll('#oStone .tabs button')) b.classList.toggle('on', b.dataset.t === tab);
-    const body = $('stBody'); body.innerHTML = '<p class="note">読みこみ中…</p>';
+    const body = $('stBody'); body.innerHTML = `<p class="note">${T('読みこみ中…')}</p>`;
     const F = ME.sp === null || ME.sp === undefined ? FT.FAC[0] : FT.FAC[facOf(ME.sp)];
     try {
       if (tab === 'first') {
         await getFloors();
-        const rows = []; for (let f = 1; f <= 100; f++) { if (!okFloor(f)) break; const o = opener(f); rows.push(`<li><b>第${f}層</b> ${esc(FLOORS[f - 1].name)}<br>${esc(o ? o.n : '名無し')}${o && o.x ? '　@' + esc(o.x) : ''}</li>`); }
-        body.innerHTML = `<p class="note">${esc(F.name)}で、各層をはじめて越えた妖精。XのIDは本人の申告で、本当にその人かは確かめていません。</p><ol class="names">${rows.length ? rows.join('') : '<li>まだだれもいない</li>'}</ol>`;
+        const rows = []; for (let f = 1; f <= 100; f++) { if (!okFloor(f)) break; const o = opener(f); rows.push(`<li><b>${T('第{0}層', f)}</b> ${esc(FLOORS[f - 1].name)}<br>${esc(o ? o.n : T('名無し'))}${o && o.x ? '　@' + esc(o.x) : ''}</li>`); }
+        body.innerHTML = `<p class="note">${T('{0}で、各層をはじめて越えた妖精。XのIDは本人の申告で、本当にその人かは確かめていません。', esc(F.name))}</p><ol class="names">${rows.length ? rows.join('') : `<li>${T('まだだれもいない')}</li>`}</ol>`;
       } else {
-        if (OFFLINE) { body.innerHTML = '<p class="note">つなぎ先が入るまでは、頂の碑は見られません。</p>'; return; }
+        if (OFFLINE) { body.innerHTML = `<p class="note">${T('つなぎ先が入るまでは、頂の碑は見られません。')}</p>`; return; }
         const out = [];
-        for (let i = 0; i < 3; i++) { const fid = N.FACS[i]; if (!N.ready(fid)) continue; const v = await N.rest('ft_clear/100', { orderBy: 't', limitToFirst: 300 }, fid).catch(() => null); const list = Object.values(v || {}).filter(c => c && c.n).sort((a, b) => a.t - b.t); out.push(`<h3 style="margin:6px 0;color:${FT.FAC[i].color};font-size:15px">${esc(FT.FAC[i].name)}</h3><ol class="names">${list.length ? list.map(c => `<li>${esc(N.cleanName(c.n) || '名無し')}${N.cleanX(c.x) ? '　@' + esc(N.cleanX(c.x)) : ''}<small>${new Date(c.t).toLocaleString('ja-JP')}</small></li>`).join('') : '<li>まだだれもいない</li>'}</ol>`); }
-        body.innerHTML = `<p class="note">世界樹の頂にたどり着いた妖精。</p>${out.join('')}`;
+        for (let i = 0; i < 3; i++) { const fid = N.FACS[i]; if (!N.ready(fid)) continue; const v = await N.rest('ft_clear/100', { orderBy: 't', limitToFirst: 300 }, fid).catch(() => null); const list = Object.values(v || {}).filter(c => c && c.n).sort((a, b) => a.t - b.t); out.push(`<h3 style="margin:6px 0;color:${FT.FAC[i].color};font-size:15px">${esc(FT.FAC[i].name)}</h3><ol class="names">${list.length ? list.map(c => `<li>${esc(N.cleanName(c.n) || '名無し')}${N.cleanX(c.x) ? '　@' + esc(N.cleanX(c.x)) : ''}<small>${new Date(c.t).toLocaleString(FT.LOCALE || 'ja-JP')}</small></li>`).join('') : `<li>${T('まだだれもいない')}</li>`}</ol>`); }
+        body.innerHTML = `<p class="note">${T('世界樹の頂にたどり着いた妖精。')}</p>${out.join('')}`;
       }
-    } catch (e) { body.innerHTML = '<p class="note">読みこめませんでした</p>'; }
+    } catch (e) { body.innerHTML = `<p class="note">${T('読みこめませんでした')}</p>`; }
   }
   for (const b of document.querySelectorAll('#oStone .tabs button')) b.onclick = () => openStone(b.dataset.t);
   $('bStone').onclick = () => openStone('first');
@@ -662,15 +662,15 @@
   //  層をえらぶ
   // =============================================
   $('bFloors').onclick = async () => {
-    if (ME.sp === null || ME.sp === undefined) { toast('まず妖精をえらんでください'); return; }
+    if (ME.sp === null || ME.sp === undefined) { toast(T('まず妖精をえらんでください')); return; }
     await getFloors();
     const box = $('flList'); box.innerHTML = '';
-    for (let f = 1; f <= W.latest; f++) { const b = document.createElement('button'); b.textContent = f; if (f === W.latest) b.className = 'now'; b.setAttribute('aria-label', `第${f}層 ${FLOORS[f - 1].name}`); b.onclick = () => { modal('oFloors', 0); startFloor(f, { watch: flMode === 'watch' }); }; box.appendChild(b); }
+    for (let f = 1; f <= W.latest; f++) { const b = document.createElement('button'); b.textContent = f; if (f === W.latest) b.className = 'now'; b.setAttribute('aria-label', `${T('第{0}層', f)} ${FLOORS[f - 1].name}`); b.onclick = () => { modal('oFloors', 0); startFloor(f, { watch: flMode === 'watch' }); }; box.appendChild(b); }
     modal('oFloors', 1);
   };
   $('flClose').onclick = () => modal('oFloors', 0);
   let flMode = 'play';
-  for (const b of document.querySelectorAll('#oFloors .tabs button')) b.onclick = () => { flMode = b.dataset.m; for (const x of document.querySelectorAll('#oFloors .tabs button')) x.classList.toggle('on', x === b); $('flNote').textContent = flMode === 'watch' ? '自分は昇らずに、その層の屍と仕掛けを見られます。一番乗りの昇り方も再生できます。' : '開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。'; };
+  for (const b of document.querySelectorAll('#oFloors .tabs button')) b.onclick = () => { flMode = b.dataset.m; for (const x of document.querySelectorAll('#oFloors .tabs button')) x.classList.toggle('on', x === b); $('flNote').textContent = flMode === 'watch' ? T('自分は昇らずに、その層の屍と仕掛けを見られます。一番乗りの昇り方も再生できます。') : T('開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。'); };
   // =============================================
   //  見る（スペクターモード）
   // =============================================
@@ -682,9 +682,9 @@
     S.run.hazard = function (s) { FT.Run.prototype.hazard.call(this, s); return null; };   // 仕掛けは動かすが、だれも死なない
     S.run.p.x = -50; S.run.p.y = lv.h + 200;
     S.acc = 0; S.cam = Math.max(0, lv.h - VH);
-    $('hFloor').innerHTML = `第${lv.f}層<small>${esc(lv.name)}</small>`;
-    $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>・見る`;
-    $('hName').textContent = '見る：指でなぞるか ↑↓ で動かす';
+    $('hFloor').innerHTML = `${T('第{0}層', lv.f)}<small>${esc(lv.name)}</small>`;
+    $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>${T('・')}${T('見る')}`;
+    $('hName').textContent = T('見る：指でなぞるか ↑↓ で動かす');
     updateHud();
     SND.bgm(themeSong(lv));
   }
@@ -694,7 +694,7 @@
     while (S.acc >= FT.DT) {
       S.acc -= FT.DT;
       if (S.run) { S.run.step(0); S.run.events.length = 0; if (S.run.p.y > lv.h + 400) S.run.p.y = lv.h + 200; }
-      if (R && !R.run.over) { R.run.step(R.inp(R.run.t + 1)); R.run.events.length = 0; if (R.run.over) toast(R.run.clear ? `「${R.name}」 越えた！` : '記録はここまで', '', 2000); }
+      if (R && !R.run.over) { R.run.step(R.inp(R.run.t + 1)); R.run.events.length = 0; if (R.run.over) toast(R.run.clear ? T('「{0}」 越えた！', R.name) : T('記録はここまで'), '', 2000); }
     }
     if (R && S.follow && !R.run.over) S.cam += (Math.max(0, Math.min(lv.h - VH, R.run.p.y - VH * .55)) - S.cam) * Math.min(1, dt * 8);
     else { const sp = 18 * dt; if (S.keys.j || S.keys.up) S.cam -= sp; if (S.keys.dn) S.cam += sp; }
@@ -702,18 +702,18 @@
   }
   async function watchReplay() {
     const f = S.lv.f, o = W.okSnap[f] || (ME.ok[N.fac] || {})[f] || W.open[f];
-    if (!o || !o.id || OFFLINE) { toast('まだだれも、この層を越えていません'); return; }
+    if (!o || !o.id || OFFLINE) { toast(T('まだだれも、この層を越えていません')); return; }
     try {
       const c = await N.rest('ft_clear/' + f + '/' + o.id);
       if (!c || typeof c.r !== 'string') throw 0;
       S.replay = { run: new FT.Run(S.lv, FT.corParse(c.c), { sp: c.s | 0, b: c.b | 0, door: true }), inp: FT.Rec.parse(c.r), name: N.cleanName(c.n) || '名無し' };
       S.follow = true;
-      toast(`はじめて越えた「${S.replay.name}」の昇り方`, '屍は、そのときの屍です', 2400);
-    } catch (e) { toast('記録を読みこめませんでした'); }
+      toast(T('はじめて越えた「{0}」の昇り方', S.replay.name), T('屍は、そのときの屍です'), 2400);
+    } catch (e) { toast(T('記録を読みこめませんでした')); }
   }
   $('wReplay').onclick = () => { SND.unlock(); watchReplay(); };
   $('wFree').onclick = () => { S.follow = false; S.replay = null; };
-  $('wPlay').onclick = () => { if (ME.sp === null || ME.sp === undefined) { toTitle(); toast('まず妖精をえらんでください'); return; } const f = S.lv.f; if (f > W.latest) { toast('まだ開いていない層です'); return; } startFloor(f); };
+  $('wPlay').onclick = () => { if (ME.sp === null || ME.sp === undefined) { toTitle(); toast(T('まず妖精をえらんでください')); return; } const f = S.lv.f; if (f > W.latest) { toast(T('まだ開いていない層です')); return; } startFloor(f); };
   // 見るときは、画面をなぞって上下に動かす
   let drag = null;
   cv.addEventListener('pointerdown', ev => { if (!S.watch) return; drag = { y: ev.clientY, c: S.cam }; S.follow = false; });
@@ -728,7 +728,7 @@
   const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
   function myCode() { return 'FT1' + b64e(JSON.stringify({ s: ME.sp, b: ME.best, d: ME.dead, x: ME.xid || '', m: (ME.mine || []).map(o => [o.a, o.f, o.k, o.n]) })); }
   $('bCode').onclick = () => { $('cdMine').value = myCode(); $('cdIn').value = ''; modal('oCode', 1); };
-  $('cdCopy').onclick = async () => { try { await navigator.clipboard.writeText($('cdMine').value); toast('コードをうつしました'); } catch (e) { $('cdMine').select(); toast('コードをえらびました', '長押ししてコピーしてください'); } };
+  $('cdCopy').onclick = async () => { try { await navigator.clipboard.writeText($('cdMine').value); toast(T('コードをうつしました')); } catch (e) { $('cdMine').select(); toast(T('コードをえらびました'), T('長押ししてコピーしてください')); } };
   $('cdLoad').onclick = () => {
     const v = $('cdIn').value.trim();
     try {
@@ -738,8 +738,8 @@
       ME.dead = Math.max(ME.dead || 0, +o.d || 0); if (o.x) ME.xid = N.cleanX(o.x);
       if (Array.isArray(o.m)) { const had = new Set((ME.mine || []).map(q => mineKey(q.a, q.f, q.k))); for (const q of o.m) { if (!Array.isArray(q) || !N.FACS.includes(q[0]) || !(+q[1] >= 1 && +q[1] <= 100) || !(+q[2] >= 0)) continue; if (!had.has(mineKey(q[0], +q[1], +q[2]))) ME.mine.push({ a: q[0], f: +q[1], k: +q[2], n: N.cleanName(q[3]) || '名無し', t: 0 }); } ME.mine = ME.mine.slice(-50); helpAt = 0; }
       saveMe(); if (ME.sp !== null && ME.sp !== undefined) N.fac = fidOf(ME.sp);
-      modal('oCode', 0); toast('読みこみました'); refresh(true);
-    } catch (e) { toast('コードの形がちがいます'); }
+      modal('oCode', 0); toast(T('読みこみました')); refresh(true);
+    } catch (e) { toast(T('コードの形がちがいます')); }
   };
   $('cdClose').onclick = () => modal('oCode', 0);
   // =============================================
@@ -749,7 +749,7 @@
   function openHow() { modal('oHow', 1); S.paused = true; }
   $('howClose').onclick = () => { modal('oHow', 0); S.paused = false; };
   $('bHow').onclick = openHow; $('gHow').onclick = openHow;
-  function paintSnd() { $('bSnd').textContent = SND.on ? '♪ 音あり' : '♪ 音なし'; }
+  function paintSnd() { $('bSnd').textContent = SND.on ? T('♪ 音あり') : T('♪ 音なし'); }
   $('bSnd').onclick = () => { SND.unlock(); SND.setOn(!SND.on); paintSnd(); };
   // =============================================
   //  タイトルへ

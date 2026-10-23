@@ -3,7 +3,7 @@
 //  ゲームの中身（engine.js）にはさわらない。main.js が FT.UI に出したものだけを使う
 // =============================================
 (function (G) {
-  const FT = G.FT, UI = FT.UI, ART = FT.ART, SND = FT.SND, S = UI.S;
+  const FT = G.FT, UI = FT.UI, ART = FT.ART, SND = FT.SND, S = UI.S, T = FT.T;
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const store = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
@@ -125,29 +125,29 @@
     if (has) {
       const sp = FT.SP[UI.ME.sp], F = FT.FAC[sp.fac];
       me.style.setProperty('--c', spCol(UI.ME.sp));
-      $('meFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>の妖精`;
-      $('meName').textContent = sp.name; $('meSk').textContent = `技：${sp.skill}`;
-      me.querySelector('.meGo').textContent = 'かえる ›';
+      $('meFac').innerHTML = T('{0}の妖精', `<span style="color:${F.color}">${esc(F.name)}</span>`);
+      $('meName').textContent = sp.name; $('meSk').textContent = T('技：{0}', sp.skill);
+      me.querySelector('.meGo').textContent = T('かえる ›');
     } else {
       me.style.removeProperty('--c');
-      $('meFac').textContent = 'はじめに'; $('meName').textContent = '妖精をえらぶ'; $('meSk').textContent = '9つの妖精から1つ。色で陣営が決まる';
-      me.querySelector('.meGo').textContent = 'えらぶ ›';
+      $('meFac').textContent = T('はじめに'); $('meName').textContent = T('妖精をえらぶ'); $('meSk').textContent = T('9つの妖精から1つ。色で陣営が決まる');
+      me.querySelector('.meGo').textContent = T('えらぶ ›');
     }
   };
   let pickFirst = false;
   function openPick(first) {
     pickFirst = !!first;
-    $('pkLead').textContent = first ? 'ようこそ。まず、あなたの妖精をえらぶ。妖精の色で入る陣営が決まり、陣営ごとにべつべつの世界樹を昇る。あとから変えられる。' : '妖精の色で、入る陣営が決まる。陣営ごとに、べつべつの世界樹を昇る。いつでも変えられる。';
+    $('pkLead').textContent = first ? T('ようこそ。まず、あなたの妖精をえらぶ。妖精の色で入る陣営が決まり、陣営ごとにべつべつの世界樹を昇る。あとから変えられる。') : T('妖精の色で、入る陣営が決まる。陣営ごとに、べつべつの世界樹を昇る。いつでも変えられる。');
     $('pkClose').hidden = first && !hasSp();
     paintPick();
     // 旗が順に出る演出をやりなおす
     for (const f of document.querySelectorAll('#facs .fac')) { f.style.animation = 'none'; void f.offsetWidth; f.style.animation = ''; }
     UI.modal('oPick', 1);
   }
-  function paintPick() { $('pkDone').disabled = !hasSp(); $('pkDone').textContent = hasSp() ? `${FT.SP[UI.ME.sp].name}で決める` : '妖精をえらんでください'; }
+  function paintPick() { $('pkDone').disabled = !hasSp(); $('pkDone').textContent = hasSp() ? T('{0}で決める', FT.SP[UI.ME.sp].name) : T('妖精をえらんでください'); }
   $('meCard').onclick = () => openPick(false);
   $('pkClose').onclick = () => UI.modal('oPick', 0);
-  $('pkDone').onclick = () => { UI.modal('oPick', 0); if (pickFirst) UI.toast('準備ができた', '「昇りはじめる」で世界樹へ', 2200); };
+  $('pkDone').onclick = () => { UI.modal('oPick', 0); if (pickFirst) UI.toast(T('準備ができた'), T('「昇りはじめる」で世界樹へ'), 2200); };
   // カードを押したら裏返す（main.js の pickSp のあとで）
   $('facs').addEventListener('click', e => { const b = e.target.closest('.sp'); if (!b) return; setTimeout(() => { SND.se('flip'); paintPick(); }, 0); });
 
@@ -163,9 +163,10 @@
   S.lowQ = !!store('ft_lowq');
   function paintSet() {
     $('bSnd').classList.toggle('off', !SND.on);
-    $('bQ').textContent = S.lowQ ? 'かるい' : 'きれい'; $('bQ').classList.toggle('off', S.lowQ);
+    $('bQ').textContent = S.lowQ ? T('かるい') : T('きれい'); $('bQ').classList.toggle('off', S.lowQ);
   }
   $('bSnd').addEventListener('click', () => setTimeout(paintSet, 0));
+  { const sel = $('bLang'); for (const [v, n] of FT.LANGS || []) { const o = document.createElement('option'); o.value = v; o.textContent = n; if (v === FT.LANG) o.selected = true; sel.appendChild(o); } sel.onchange = () => FT.setLang(sel.value); }
   $('bQ').onclick = () => { S.lowQ = !S.lowQ; store('ft_lowq', S.lowQ ? 1 : 0); paintSet(); };
 
   // =============================================
@@ -175,15 +176,15 @@
     if (!S.lv || document.querySelector('.over.on')) return;
     S.paused = true; S.keys.l = S.keys.r = S.keys.j = S.keys.k = 0;
     SND.se('pause');
-    $('psInfo').textContent = `第${S.lv.f}層　${S.lv.name}`;
-    $('psSndT').textContent = SND.on ? '音あり' : '音なし';
+    $('psInfo').textContent = `${T('第{0}層', S.lv.f)}　${S.lv.name}`;
+    $('psSndT').textContent = SND.on ? T('音あり') : T('音なし');
     UI.modal('oPause', 1);
   };
   const resume = () => { UI.modal('oPause', 0); S.paused = false; S.enterAt = 0; };
   $('psResume').onclick = resume;
   $('oPause').addEventListener('click', e => { if (e.target.id === 'oPause') resume(); });
   $('psHow').onclick = () => { UI.modal('oPause', 0); UI.openHow(); };
-  $('psSnd').onclick = () => { SND.unlock(); SND.setOn(!SND.on); UI.paintSnd(); $('psSndT').textContent = SND.on ? '音あり' : '音なし'; };
+  $('psSnd').onclick = () => { SND.unlock(); SND.setOn(!SND.on); UI.paintSnd(); $('psSndT').textContent = SND.on ? T('音あり') : T('音なし'); };
   $('psTitle').onclick = () => { UI.modal('oPause', 0); S.paused = false; UI.toTitle(); };
   addEventListener('keydown', e => { if (e.code === 'Escape' && $('oPause').classList.contains('on')) { e.preventDefault(); resume(); } });
   // 別のアプリへ移ったら止める
@@ -195,7 +196,7 @@
   let bnT = 0;
   UI.banner = function (f, name, sub) {
     const el = $('fBanner');
-    el.querySelector('.fbK').textContent = f === 100 ? '頂' : `第 ${f} 層`;
+    el.querySelector('.fbK').textContent = f === 100 ? T('頂') : T('第 {0} 層', f);
     el.querySelector('.fbN').textContent = name || '';
     el.querySelector('.fbS').textContent = sub || '';
     el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
@@ -227,7 +228,7 @@
         g.fillStyle = band; g.fillRect(0, by - bh / 2, W, bh);
         g.font = `700 ${26 * dpr}px "Kaisei Decol", serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillStyle = `rgba(214,92,104,${a})`; g.shadowColor = 'rgba(255,60,80,.6)'; g.shadowBlur = 16 * dpr;
-        const sp = 1 + k * .25; g.save(); g.translate(W / 2, by); g.scale(sp, sp); g.fillText('力尽きた', 0, 0); g.restore();
+        const sp = 1 + k * .25; g.save(); g.translate(W / 2, by); g.scale(sp, sp); g.fillText(T('力尽きた'), 0, 0); g.restore();
         g.shadowBlur = 0; g.textBaseline = 'alphabetic';
       }
     }

@@ -1,0 +1,284 @@
+// =============================================
+//  ことば（日本語・英語・中国語（繁体字）・韓国語）
+//  ・日本語の文をそのまま「かぎ」にして、ほかの言葉をひく。見つからなければ日本語のまま
+//  ・{0} {1} … は、あとから入る数や名前
+//  ・層の名前・妖精・陣営・妖精につく名前も、ここで入れかえる（遊びの計算には関わらない）
+// =============================================
+(function (G) {
+  const FT = G.FT;
+  const LANGS = ['ja', 'en', 'zh', 'ko'];
+  const pick = () => {
+    try { const s = localStorage.getItem('ft_lang'); if (LANGS.includes(s)) return s; } catch (e) { }
+    const q = new URLSearchParams(location.search).get('lang'); if (LANGS.includes(q)) return q;
+    const n = String((navigator.languages && navigator.languages[0]) || navigator.language || 'ja').toLowerCase();
+    if (n.startsWith('ja')) return 'ja'; if (n.startsWith('zh')) return 'zh'; if (n.startsWith('ko')) return 'ko'; return 'en';
+  };
+  const L = FT.LANG = pick();
+  const IX = { en: 0, zh: 1, ko: 2 }[L];
+  FT.LOCALE = { ja: 'ja-JP', en: 'en-US', zh: 'zh-TW', ko: 'ko-KR' }[L];
+  FT.LANGS = [['ja', '日本語'], ['en', 'English'], ['zh', '繁體中文'], ['ko', '한국어']];
+  FT.setLang = l => { try { localStorage.setItem('ft_lang', l); } catch (e) { } location.reload(); };
+
+  // [英語, 中国語（繁体字）, 韓国語]
+  const D = {
+    '#FairiesTower #gamedev #ゲーム制作': ['#FairiesTower #indiegame #gamedev', '#FairiesTower #獨立遊戲 #indiegame', '#FairiesTower #인디게임 #indiegame'],
+    'まず妖精をえらぶ': ['Choose your fairy', '先選擇妖精', '먼저 요정을 고르자'],
+    '頂上に到達': ['Summit reached', '已抵達頂端', '정상 도달'],
+    '第{0}層': ['Floor {0}', '第{0}層', '{0}층'],
+    '{0}の最前線': ['{0} front line', '{0}的最前線', '{0}의 최전선'],
+    '（この端末だけで遊んでいます）': [' (offline on this device)', '（僅在此裝置上遊玩）', ' (이 기기에서만 플레이 중)'],
+    '第{0}層を最初に越えたのは「{1}」': ['First past Floor {0}: “{1}”', '第一個越過第{0}層的是「{1}」', '{0}층을 처음 넘은 자: “{1}”'],
+    '追い上げ中：翅が{0}%長くもつ': ['Catch-up bonus: wings last {0}% longer', '追趕中：翅膀續航延長{0}%', '추격 보너스: 날개가 {0}% 더 오래 버틴다'],
+    '頂上の扉は開いている': ['The summit gate is open', '頂端之門已開啟', '정상의 문이 열려 있다'],
+    '頂上の扉は閉じている（ほかの陣営のどれかが第{0}層に着くと開く）': ['The summit gate is sealed (it opens when another faction reaches Floor {0})', '頂端之門緊閉（其他陣營抵達第{0}層時開啟）', '정상의 문이 닫혀 있다 (다른 진영이 {0}층에 닿으면 열린다)'],
+    '　／　': [' / ', '　／　', ' / '],
+    '9つの妖精から1つをえらぶ。妖精の色で、どの陣営に入るかが決まる。陣営ごとに、べつべつの世界樹を昇る。': ['Choose one of nine fairies. Its color decides your faction, and each faction climbs its own World Tree.', '從9種妖精中選擇1種。妖精的顏色決定你加入的陣營，每個陣營攀登各自的世界樹。', '9종의 요정 중 하나를 고르자. 요정의 색이 진영을 정하고, 진영마다 각자의 세계수를 오른다.'],
+    '{0}が、世界樹の頂にたどり着いた。': ['{0} has reached the summit of the World Tree.', '{0}抵達了世界樹之巔。', '{0}, 세계수의 정상에 도달했다.'],
+    'ゲームは終わりました。いまの世界樹は、そのときのまま残っています。': ['The game is over. The World Tree remains just as it was.', '遊戲已經結束。世界樹保持著當時的模樣。', '게임은 끝났다. 세계수는 그때 그대로 남아 있다.'],
+    'これから昇っても、屍は増えません。': ['You can still climb, but no new remains will be left.', '今後攀登也不會再留下屍骸。', '지금 올라도 시체는 더 늘지 않는다.'],
+    '妖精をえらんでください': ['Choose a fairy', '請選擇妖精', '요정을 골라 주세요'],
+    '頂上をながめる': ['Gaze upon the summit', '眺望頂端', '정상을 바라보기'],
+    '第{0}層から昇る': ['Climb from Floor {0}', '從第{0}層開始攀登', '{0}층부터 오르기'],
+    '（記録は残りません）': [' (not recorded)', '（不留紀錄）', ' (기록 없음)'],
+    '頂': ['Summit', '頂', '정상'],
+    'あなた': ['You', '你', '나'],
+    'みんなの屍を読みこめませんでした': ['Couldn’t load the fallen', '無法讀取大家的屍骸', '모두의 시체를 불러오지 못했다'],
+    'この端末の分だけで遊べます': ['You can play with this device’s data only', '只能使用此裝置的資料遊玩', '이 기기의 데이터로만 플레이할 수 있다'],
+    '・': [' · ', '・', ' · '],
+    '（いつも）': ['(always on)', '（常駐）', '(상시)'],
+    '{0}が得意な層': ['A floor for the {0}', '{0}擅長的樓層', '{0}에게 유리한 층'],
+    '{0}の': ['{0} · ', '{0}的', '{0}의 '],
+    'あなたの屍は、のべ {0}人の足場になった': ['Your remains have carried {0} climbers', '你的屍骸已累計成為 {0} 人的踏腳石', '나의 시체가 지금까지 {0}명의 발판이 되었다'],
+    'いちばん役に立った屍：{0}第{1}層「{2}」（{3}人）': ['Most helpful: “{2}”, {0}Floor {1} ({3})', '最有用的屍骸：{0}第{1}層「{2}」（{3}人）', '가장 도움이 된 시체: {0}{1}층 “{2}” ({3}명)'],
+    'まだだれも乗っていない。あとから来る仲間を待とう': ['No one has stood on them yet. Wait for those who follow.', '還沒有人踏上去。等待後來的同伴吧。', '아직 아무도 밟지 않았다. 뒤따라올 동료를 기다리자.'],
+    '{0}は翅が尽きて、力尽きた': ['{0}’s wings gave out', '{0}的翅膀耗盡，倒下了', '{0}, 날개가 다해 쓰러졌다'],
+    '{0}は水の中で、息が尽きた': ['{0} ran out of breath underwater', '{0}在水中耗盡了氣息', '{0}, 물속에서 숨이 다했다'],
+    '{0}は幹の槍に貫かれた': ['{0} was pierced by a trunk spear', '{0}被樹幹之槍貫穿', '{0}, 줄기의 창에 꿰뚫렸다'],
+    '{0}は炎に焼かれた': ['{0} was burned by flames', '{0}被火焰吞噬', '{0}, 불꽃에 타 버렸다'],
+    '{0}は燃える枝で焼かれた': ['{0} burned on a blazing branch', '{0}在燃燒的樹枝上被燒焦', '{0}, 불타는 가지에서 타 버렸다'],
+    '{0}は蛾に触れた': ['{0} touched a moth', '{0}碰到了飛蛾', '{0}, 나방에 닿았다'],
+    '{0}は蜂に刺された': ['{0} was stung by a bee', '{0}被蜜蜂螫了', '{0}, 벌에 쏘였다'],
+    '{0}は見えない棘に刺さった': ['{0} hit an unseen thorn', '{0}被看不見的荊棘刺中', '{0}, 보이지 않는 가시에 찔렸다'],
+    '{0}は落ちてきた実に打たれた': ['{0} was struck by falling fruit', '{0}被掉落的果實砸中', '{0}, 떨어지는 열매에 맞았다'],
+    '{0}は力尽きた': ['{0} has fallen', '{0}倒下了', '{0}, 쓰러졌다'],
+    '「{0}」の屍に合流した（{1}人が眠る）': ['Joined the remains of “{0}” ({1} rest here)', '與「{0}」的屍骸合而為一（{1}人長眠於此）', '“{0}”의 시체에 합류했다 ({1}명이 잠들어 있다)'],
+    'ここが、あとから来る仲間の足場になる': ['Here you become a foothold for those who follow', '此處將成為後來同伴的踏腳石', '이곳이 뒤따르는 동료의 발판이 된다'],
+    '根もとで倒れた。屍は残らない': ['Fell at the roots. No remains are left', '倒在了根部，沒有留下屍骸', '뿌리에서 쓰러졌다. 시체는 남지 않는다'],
+    '{0}人の屍を越えて': ['Over {0} fallen', '越過{0}人的屍骸', '{0}명의 시체를 넘어'],
+    '世界樹の頂へ': ['to the summit of the World Tree', '抵達世界樹之巔', '세계수의 정상으로'],
+    '第{0}層突破！': ['Floor {0} cleared!', '突破第{0}層！', '{0}층 돌파!'],
+    '{0}秒': ['{0}s', '{0}秒', '{0}초'],
+    '第{0}層へ': ['To Floor {0}', '前往第{0}層', '{0}층으로'],
+    '世界樹の頂にたどり着いた（この端末だけの記録です）': ['You reached the summit (recorded on this device only)', '抵達了世界樹之巔（僅記錄於此裝置）', '세계수의 정상에 도달했다 (이 기기에만 기록됨)'],
+    'ゲームは終わっているので、記録は残りません': ['The game has ended, so this isn’t recorded', '遊戲已經結束，不會留下紀錄', '게임이 끝나서 기록되지 않는다'],
+    '記録を送っています…': ['Sending your record…', '正在傳送紀錄…', '기록을 보내는 중…'],
+    '{0}が、世界樹の頂にたどり着いた！': ['{0} has reached the summit of the World Tree!', '{0}抵達了世界樹之巔！', '{0}, 세계수의 정상에 도달했다!'],
+    '第{0}層が、いま開いた。あなたが一番乗り': ['Floor {0} is now open. You were first!', '第{0}層剛剛開啟。你是第一個！', '{0}층이 방금 열렸다. 당신이 일등이다!'],
+    '頂の碑に、あなたの名前が刻まれた': ['Your name is carved on the Summit Monument', '你的名字刻上了頂之碑', '정상의 비석에 당신의 이름이 새겨졌다'],
+    'ひと足先に越えた仲間がいました。あなたの記録も残りました': ['An ally got here just before you. Your record was saved too.', '有同伴搶先一步越過了。你的紀錄也已留下。', '한발 앞서 넘은 동료가 있었다. 당신의 기록도 남았다.'],
+    '記録を送れませんでした（混みあっているか、電波が弱いです）。': ['Couldn’t send your record (busy server or weak signal).', '無法傳送紀錄（伺服器忙碌或訊號不佳）。', '기록을 보내지 못했다 (혼잡하거나 신호가 약하다).'],
+    'IDの形がちがいます': ['That ID doesn’t look right', 'ID格式不正確', 'ID 형식이 올바르지 않다'],
+    '英数字と _ で15文字まで': ['Up to 15 letters, numbers or _', '最多15個英數字或 _', '영문·숫자·_ 15자까지'],
+    '記録を送っている途中です': ['Still sending your record', '紀錄還在傳送中', '아직 기록을 보내는 중이다'],
+    '少し待ってもう一度': ['Please try again in a moment', '請稍候再試一次', '잠시 후 다시 시도해 주세요'],
+    '碑に刻みました': ['Carved on the monument', '已刻上石碑', '비석에 새겼다'],
+    '書きこめませんでした': ['Couldn’t save', '無法寫入', '저장하지 못했다'],
+    '15分をすぎると、書きこめません': ['This can only be added within 15 minutes', '超過15分鐘後就無法寫入', '15분이 지나면 추가할 수 없다'],
+    '名前だけが刻まれます': ['Only your fairy’s name will be carved', '只會刻上名字', '이름만 새겨진다'],
+    '{0}人': ['×{0}', '{0}人', '{0}명'],
+    '（{0}人の足場）': [' (carried {0})', '（{0}人的踏腳石）', ' ({0}명의 발판)'],
+    '頂上の扉（ほかの陣営が第{0}層に着くと開く）': ['Summit gate (opens when another faction reaches Floor {0})', '頂端之門（其他陣營抵達第{0}層時開啟）', '정상의 문 (다른 진영이 {0}층에 닿으면 열림)'],
+    '世界樹の頂にたどり着いた！': ['Reached the summit of the World Tree!', '抵達世界樹之巔！', '세계수의 정상에 도달했다!'],
+    '{0}人の屍を越えて、第{1}層突破！': ['Cleared Floor {1} over {0} fallen fairies!', '越過{0}人的屍骸，突破第{1}層！', '{0}명의 시체를 넘어 {1}층 돌파!'],
+    '第{0}層まで到達！': ['Made it to Floor {0}!', '抵達第{0}層！', '{0}층까지 도달!'],
+    '3つの陣営で、': ['Three factions.', '三大陣營，', '세 진영이'],
+    '世界樹のてっぺんを目指す': ['One World Tree to conquer.', '爭奪世界樹之巔', '세계수의 꼭대기를 노린다'],
+    '読みこみ中…': ['Loading…', '讀取中…', '불러오는 중…'],
+    '名無し': ['Nameless', '無名氏', '이름 없음'],
+    '{0}で、各層をはじめて越えた妖精。XのIDは本人の申告で、本当にその人かは確かめていません。': ['The first fairy of the {0} to clear each floor. X IDs are self-reported and not verified.', '{0}中，第一個越過各層的妖精。X 的 ID 為本人自行填寫，未經確認。', '{0}에서 각 층을 처음 넘은 요정. X ID는 본인이 적은 것으로 확인되지 않았다.'],
+    'まだだれもいない': ['No one yet', '尚無人', '아직 아무도 없다'],
+    'つなぎ先が入るまでは、頂の碑は見られません。': ['The Summit Monument is unavailable offline.', '尚未連線，無法查看頂之碑。', '연결되기 전에는 정상의 비석을 볼 수 없다.'],
+    '世界樹の頂にたどり着いた妖精。': ['Fairies who reached the summit of the World Tree.', '抵達世界樹之巔的妖精。', '세계수의 정상에 도달한 요정들.'],
+    '読みこめませんでした': ['Couldn’t load', '無法讀取', '불러오지 못했다'],
+    'まず妖精をえらんでください': ['Choose a fairy first', '請先選擇妖精', '먼저 요정을 골라 주세요'],
+    '自分は昇らずに、その層の屍と仕掛けを見られます。一番乗りの昇り方も再生できます。': ['Watch a floor’s remains and traps without climbing. You can also replay the first climber’s run.', '不必親自攀登，也能觀看該層的屍骸與機關。還能重播第一個越過者的路線。', '직접 오르지 않고 그 층의 시체와 장치를 볼 수 있다. 일등의 등반도 다시 볼 수 있다.'],
+    '開いた層なら、どこからでも昇れます。いちばん新しい層が、陣営の最前線です。': ['Climb from any open floor. The newest floor is your faction’s front line.', '只要是已開啟的樓層，都能從那裡開始攀登。最新的樓層就是陣營的最前線。', '열린 층이라면 어디서든 오를 수 있다. 가장 새로운 층이 진영의 최전선이다.'],
+    '見る': ['Watch', '觀看', '관전'],
+    '見る：指でなぞるか ↑↓ で動かす': ['Watching: drag or use ↑↓ to look around', '觀看：用手指拖曳或按 ↑↓ 移動', '관전: 드래그하거나 ↑↓로 이동'],
+    '「{0}」 越えた！': ['“{0}” made it!', '「{0}」越過了！', '“{0}” 돌파!'],
+    '記録はここまで': ['The record ends here', '紀錄到此為止', '기록은 여기까지'],
+    'まだだれも、この層を越えていません': ['No one has cleared this floor yet', '還沒有人越過這一層', '아직 아무도 이 층을 넘지 못했다'],
+    'はじめて越えた「{0}」の昇り方': ['How “{0}” first cleared it', '第一個越過的「{0}」的攀登路線', '처음 넘은 “{0}”의 등반'],
+    '屍は、そのときの屍です': ['Remains shown as they were at the time', '屍骸為當時的狀態', '시체는 그때의 모습이다'],
+    '記録を読みこめませんでした': ['Couldn’t load the record', '無法讀取紀錄', '기록을 불러오지 못했다'],
+    'まだ開いていない層です': ['This floor isn’t open yet', '這一層尚未開啟', '아직 열리지 않은 층이다'],
+    'コードをうつしました': ['Code copied', '已複製代碼', '코드를 복사했다'],
+    'コードをえらびました': ['Code selected', '已選取代碼', '코드를 선택했다'],
+    '長押ししてコピーしてください': ['Long-press to copy it', '請長按複製', '길게 눌러 복사해 주세요'],
+    '読みこみました': ['Loaded', '已讀取', '불러왔다'],
+    'コードの形がちがいます': ['That code isn’t valid', '代碼格式不正確', '코드 형식이 올바르지 않다'],
+    '♪ 音あり': ['♪ Sound on', '♪ 開啟音效', '♪ 소리 켬'],
+    '♪ 音なし': ['♪ Sound off', '♪ 關閉音效', '♪ 소리 끔'],
+    '{0}の妖精': ['A fairy of the {0}', '{0}的妖精', '{0}의 요정'],
+    '技：{0}': ['Skill: {0}', '技能：{0}', '기술: {0}'],
+    'かえる ›': ['Change ›', '更換 ›', '바꾸기 ›'],
+    'はじめに': ['First things first', '首先', '먼저'],
+    '妖精をえらぶ': ['Choose your fairy', '選擇妖精', '요정 고르기'],
+    '9つの妖精から1つ。色で陣営が決まる': ['Pick one of nine. Its color decides your faction', '從9種中選1種，顏色決定陣營', '9종 중 하나. 색이 진영을 정한다'],
+    'えらぶ ›': ['Choose ›', '選擇 ›', '고르기 ›'],
+    'ようこそ。まず、あなたの妖精をえらぶ。妖精の色で入る陣営が決まり、陣営ごとにべつべつの世界樹を昇る。あとから変えられる。': ['Welcome. First, choose your fairy. Its color decides your faction, and each faction climbs its own World Tree. You can change later.', '歡迎。首先，選擇你的妖精。妖精的顏色決定你的陣營，每個陣營攀登各自的世界樹。之後也能更換。', '환영한다. 먼저 당신의 요정을 고르자. 요정의 색이 진영을 정하고, 진영마다 각자의 세계수를 오른다. 나중에 바꿀 수 있다.'],
+    '妖精の色で、入る陣営が決まる。陣営ごとに、べつべつの世界樹を昇る。いつでも変えられる。': ['Your fairy’s color decides your faction. Each faction climbs its own World Tree. Change any time.', '妖精的顏色決定陣營。每個陣營攀登各自的世界樹。隨時都能更換。', '요정의 색이 진영을 정한다. 진영마다 각자의 세계수를 오른다. 언제든 바꿀 수 있다.'],
+    '{0}で決める': ['Go with the {0}', '決定選{0}', '{0} 선택'],
+    '準備ができた': ['Ready', '準備完成', '준비 완료'],
+    '「昇りはじめる」で世界樹へ': ['Tap “Begin the Climb” to enter the World Tree', '按下「開始攀登」前往世界樹', '“오르기 시작”을 눌러 세계수로'],
+    'かるい': ['Light', '輕量', '가볍게'],
+    'きれい': ['Pretty', '精美', '고화질'],
+    '音あり': ['Sound on', '開啟音效', '소리 켬'],
+    '音なし': ['Sound off', '關閉音效', '소리 끔'],
+    '第 {0} 層': ['FLOOR {0}', '第 {0} 層', '{0} 층'],
+    '力尽きた': ['FALLEN', '倒下了', '쓰러졌다'],
+    'なすびのお庭': ['NASUBI GARDEN', '茄子庭園', '가지 정원'],
+    '3つの陣営に分かれて、100層の世界樹を昇る。': ['Three factions race up a World Tree of 100 floors.', '分成三大陣營，攀登100層的世界樹。', '세 진영으로 나뉘어 100층의 세계수를 오른다.'],
+    '倒れた妖精は浮かぶ屍になって、仲間の足場になる。': ['Every fallen fairy becomes a floating foothold for allies.', '倒下的妖精會化為漂浮的屍骸，成為同伴的踏腳石。', '쓰러진 요정은 떠다니는 시체가 되어 동료의 발판이 된다.'],
+    '世界樹と、3つの陣営がどこまで昇ったか': ['The World Tree and how far each faction has climbed', '世界樹與三大陣營的攀登進度', '세계수와 세 진영이 오른 높이'],
+    '第1層': ['Floor 1', '第1層', '1층'],
+    '死んだ数': ['Fallen', '死亡數', '쓰러진 수'],
+    'あなたの妖精': ['Your fairy', '你的妖精', '나의 요정'],
+    'まだえらんでいない': ['Not chosen yet', '尚未選擇', '아직 고르지 않음'],
+    '昇りはじめる': ['Begin the Climb', '開始攀登', '오르기 시작'],
+    '層をえらぶ': ['Floors', '選擇樓層', '층 선택'],
+    '碑': ['Monument', '石碑', '비석'],
+    'あそびかた': ['How to Play', '玩法', '플레이 방법'],
+    'その他': ['More', '其他', '더보기'],
+    '世界樹の中を昇るゲーム画面': ['Game screen: climbing inside the World Tree', '在世界樹中攀登的遊戲畫面', '세계수 안을 오르는 게임 화면'],
+    'この層の死': ['Fallen here', '本層死亡', '이 층의 죽음'],
+    'Xに投稿': ['Post on X', '分享到 X', 'X에 게시'],
+    '一時停止': ['Paused', '暫停', '일시정지'],
+    '左へ': ['Left', '向左', '왼쪽'],
+    '右へ': ['Right', '向右', '오른쪽'],
+    '技': ['Skill', '技能', '기술'],
+    '跳ぶ・飛ぶ': ['Jump / Fly', '跳躍・飛行', '점프 / 비행'],
+    '飛ぶ': ['FLY', '飛', '날기'],
+    '一番乗りの昇り方': ['First Clear Replay', '第一名的攀登', '일등의 등반'],
+    '自由に見る': ['Free Look', '自由觀看', '자유 관전'],
+    'この層を昇る': ['Climb This Floor', '攀登這一層', '이 층 오르기'],
+    '← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc で一時停止': ['← → move　Hold Space (or ↑) to fly　X: skill　Esc: pause', '← → 移動　按住空白鍵（或 ↑）飛行　X 技能　Esc 暫停', '← → 이동　스페이스(또는 ↑)를 누르고 있으면 비행　X 기술　Esc 일시정지'],
+    '屍を読みこんでいます…': ['Gathering the fallen…', '正在讀取屍骸…', '시체를 불러오는 중…'],
+    '碑に、XのIDを添えられます（なくてもよい）。': ['You can add your X ID to the monument (optional).', '可以在石碑上附上你的 X ID（可省略）。', '비석에 X ID를 남길 수 있다 (선택).'],
+    'XのID（@なし）': ['X ID (without @)', 'X 的 ID（不含 @）', 'X ID (@ 없이)'],
+    '刻む': ['Carve', '刻上', '새기기'],
+    '名前だけ': ['Name only', '只刻名字', '이름만'],
+    '次の層へ': ['Next Floor', '前往下一層', '다음 층으로'],
+    'タイトルへ': ['Title', '回到標題', '타이틀로'],
+    '投稿する絵': ['Image to post', '分享用圖片', '게시할 이미지'],
+    '絵は「絵を保存」で端末に保存して、投稿に添えてください。': ['Save the image with “Save Image” and attach it to your post.', '請用「儲存圖片」存到裝置，再附加到貼文中。', '“이미지 저장”으로 기기에 저장한 뒤 게시물에 첨부해 주세요.'],
+    'Xを開く': ['Open X', '開啟 X', 'X 열기'],
+    '絵を保存': ['Save Image', '儲存圖片', '이미지 저장'],
+    '閉じる': ['Close', '關閉', '닫기'],
+    '各層の一番乗り': ['First on Each Floor', '各層第一名', '각 층의 일등'],
+    '頂の碑': ['Summit Monument', '頂之碑', '정상의 비석'],
+    '昇る': ['Climb', '攀登', '오르기'],
+    '引き継ぎ': ['Transfer', '資料轉移', '데이터 이전'],
+    '別の端末でも同じ記録（えらんだ妖精・いちばん高く昇った層・死んだ数）で遊べます。この端末のコードを、別の端末に入れてください。': ['Continue on another device with the same record (fairy, highest floor, deaths). Enter this device’s code on the other device.', '在其他裝置上也能用相同紀錄（選擇的妖精、最高樓層、死亡數）遊玩。請把這台裝置的代碼輸入到另一台裝置。', '다른 기기에서도 같은 기록(고른 요정·가장 높이 오른 층·쓰러진 수)으로 플레이할 수 있다. 이 기기의 코드를 다른 기기에 입력해 주세요.'],
+    'この端末のコード': ['This device’s code', '此裝置的代碼', '이 기기의 코드'],
+    'コードをうつす': ['Copy Code', '複製代碼', '코드 복사'],
+    '別の端末のコードを入れる': ['Enter a code from another device', '輸入其他裝置的代碼', '다른 기기의 코드 입력'],
+    'コードをはりつける': ['Paste code', '貼上代碼', '코드 붙여넣기'],
+    '読みこむ': ['Load', '讀取', '불러오기'],
+    '飛ぶボタンを押し続けると、翅で飛べる。飛べるのは少しの間だけ': ['Hold FLY to take wing — but only for a short while.', '按住「飛」按鈕就能用翅膀飛行，但只能飛一小段時間。', '날기 버튼을 누르고 있으면 날개로 난다. 날 수 있는 건 잠깐뿐.'],
+    '空中で翅が尽きると、その場で力尽きる。倒れた妖精は屍になって、宙に浮かんだまま残る': ['If your wings give out mid-air, you fall right there — and your body stays floating as remains.', '在空中翅膀耗盡就會當場倒下。倒下的妖精會化為屍骸，漂浮在半空中。', '공중에서 날개가 다하면 그 자리에서 쓰러진다. 쓰러진 요정은 시체가 되어 공중에 떠 있다.'],
+    '枝や屍の上に立つと、翅がもとに戻る。屍には、飛ぶのをやめて近づけばつかまれる': ['Standing on branches or remains restores your wings. Stop flying near remains to grab on.', '站在樹枝或屍骸上，翅膀就會恢復。停止飛行並靠近屍骸就能抓住。', '가지나 시체 위에 서면 날개가 회복된다. 날기를 멈추고 시체에 다가가면 붙잡을 수 있다.'],
+    '枝も屍も、下や横からはすり抜けられる。近くで倒れると屍が合流して、足場が広がる': ['You pass through branches and remains from below or the side. Falling nearby merges remains into a wider foothold.', '樹枝和屍骸都能從下方或側面穿過。在附近倒下時屍骸會合併，落腳處會變寬。', '가지와 시체는 아래나 옆에서 통과할 수 있다. 가까이서 쓰러지면 시체가 합쳐져 발판이 넓어진다.'],
+    '屍は同じ陣営の仲間とだけ共有される。いちばん上の出口に着くと、次の層が開く': ['Remains are shared only within your faction. Reach the exit at the top to open the next floor.', '屍骸只會與同陣營的同伴共享。抵達最上方的出口，就會開啟下一層。', '시체는 같은 진영의 동료와만 공유된다. 맨 위의 출구에 닿으면 다음 층이 열린다.'],
+    '最初に第100層の頂にたどり着いた陣営の勝ち。ゲームはそこで終わる': ['The first faction to reach the summit of Floor 100 wins, and the game ends.', '最先抵達第100層頂端的陣營獲勝，遊戲就此結束。', '가장 먼저 100층 정상에 도달한 진영이 승리하고, 게임은 거기서 끝난다.'],
+    '遅れている陣営ほど、翅が少し長くもつ（追い上げ）。頂上の扉は、ほかの陣営のどれかが第80層まで来ると開く。': ['Factions that fall behind get slightly longer-lasting wings (catch-up). The summit gate opens once another faction reaches Floor 80.', '落後的陣營，翅膀續航會稍微延長（追趕）。其他陣營之一抵達第80層時，頂端之門就會開啟。', '뒤처진 진영일수록 날개가 조금 더 오래 버틴다(추격). 정상의 문은 다른 진영 중 하나가 80층에 닿으면 열린다.'],
+    'わかった': ['Got it', '我懂了', '알겠다'],
+    'この妖精で昇る': ['Climb with This Fairy', '用這個妖精攀登', '이 요정으로 오르기'],
+    'いまの世界樹を絵にして投稿': ['Share the World Tree as an image', '把現在的世界樹做成圖片分享', '지금의 세계수를 이미지로 게시'],
+    '別の端末でも同じ記録で遊ぶ': ['Play with the same record on another device', '在其他裝置延續相同紀錄', '다른 기기에서 같은 기록으로 플레이'],
+    '設定': ['Settings', '設定', '설정'],
+    '音・画質・クレジット': ['Sound, graphics, language, credits', '音效、畫質、語言、製作名單', '소리·화질·언어·크레디트'],
+    '音': ['Sound', '音效', '소리'],
+    '画質': ['Graphics', '畫質', '화질'],
+    '言語': ['Language', '語言', '언어'],
+    '「かるい」にすると光の筋をへらして、古い端末でも動きやすくなります。': ['“Light” reduces light shafts so older devices run smoothly.', '選擇「輕量」會減少光束效果，舊裝置也能流暢執行。', '“가볍게”로 하면 빛줄기를 줄여 오래된 기기에서도 부드럽게 돌아간다.'],
+    'クレジット': ['Credits', '製作名單', '크레디트'],
+    '企画・制作：なすびのお庭': ['Design & development: Nasubi Garden', '企劃・製作：茄子庭園（なすびのお庭）', '기획·제작: 가지 정원(なすびのお庭)'],
+    '背景素材：edermunizz「Free Pixel Art Forest」': ['Background art: edermunizz “Free Pixel Art Forest”', '背景素材：edermunizz「Free Pixel Art Forest」', '배경 소재: edermunizz “Free Pixel Art Forest”'],
+    '素材：Anokolisa「Legacy Fantasy - High Forest」': ['Assets: Anokolisa “Legacy Fantasy - High Forest”', '素材：Anokolisa「Legacy Fantasy - High Forest」', '소재: Anokolisa “Legacy Fantasy - High Forest”'],
+    '妖精・世界樹のドット絵：なすびのお庭': ['Fairy & World Tree pixel art: Nasubi Garden', '妖精・世界樹點陣圖：茄子庭園', '요정·세계수 도트: 가지 정원'],
+    'つづける': ['Resume', '繼續', '계속'],
+    'タイトルへもどる': ['Return to Title', '回到標題', '타이틀로 돌아가기'],
+    'タップしてはじめる': ['TAP TO BEGIN', '點擊開始', '탭하여 시작'],
+    '世界樹を、屍で昇れ': ['Climb the World Tree on the fallen', '踏著屍骸，攀上世界樹', '시체를 딛고 세계수를 올라라'],
+  };
+  const FLOORS = [
+    ['The Root Hollow', '根之洞窟', '뿌리의 동굴'], ['Mossbound Corridor', '苔蘚迴廊', '이끼 낀 회랑'], ['Sapwood Trail', '樹液小徑', '수액의 오솔길'], ['Chamber of Spores', '孢子之間', '포자의 방'], ['The Hollow Hall', '樹洞大廳', '옹이 대전'],
+    ['Knot of Shadow', '暗之節', '어둠의 마디'], ['Sapspring', '樹液之泉', '수액의 샘'], ['The Moth Nest', '飛蛾巢穴', '나방의 둥지'], ['Unseen Thorns', '無形之棘', '보이지 않는 가시'], ['Bough of Plenty', '豐饒之枝', '풍요의 가지'],
+    ['Twigpath', '細枝小道', '잔가지 길'], ['Smoldering Bark', '悶燃樹皮', '그을린 나무껍질'], ['The Windwell', '穿風之井', '바람의 통로'], ['The Empty Sky', '空無之天', '텅 빈 하늘'], ['Hall of Hidden Thorns', '隱棘之間', '숨은 가시의 방'],
+    ['Knot of Water', '水之節', '물의 마디'], ['The Ripened Chamber', '熟果之間', '익은 열매의 방'], ['The Twig Tightrope', '細枝之繩', '가는 가지 줄타기'], ['Hall of Wingbeats', '振翅之間', '날갯소리의 방'], ['The Gloaming Room', '幽暗之間', '어스름의 방'],
+    ['The High Hollow', '高聳空洞', '높은 공동'], ['Hall of the Flamekeeper', '守火之間', '불지기의 방'], ['The Hollow Heart', '虛無之間', '공허의 방'], ['Hive Corridor', '蜂之迴廊', '벌의 회랑'], ['The Birdway', '鳥之通路', '새들의 길'],
+    ['Tiptoe Branches', '踮足之枝', '발끝의 가지'], ['Sky Without Footing', '無依之空', '발판 없는 하늘'], ['The Sinking Hollow', '沉沒洞窟', '가라앉는 동굴'], ['The Lightless Hollow', '無光洞窟', '빛 없는 동굴'], ['Burning Boughs', '燃燒之枝', '불타는 가지'],
+    ['Briars of Shadow', '影之荊棘', '그림자 가시덤불'], ['Fallfruit Slope', '落果之坡', '낙과의 비탈'], ['Threadbranch', '絲之枝', '실가지'], ['Honeydew Ceiling', '甘露穹頂', '감로의 천장'], ['Ember Corridor', '餘燼迴廊', '불씨의 회랑'],
+    ['Dewdrop Corridor', '水滴迴廊', '물방울 회랑'], ['The Hazy Hollow', '朦朧空洞', '안개 낀 공동'], ['Tower of Nothing', '空虛之塔', '텅 빈 탑'], ['Mist of Moth-Dust', '鱗粉之霧', '인분의 안개'], ['Heart of Night', '夜之芯', '밤의 심지'],
+    ['Phantom Thorns', '幻之棘', '환영의 가시'], ['The Rising Tide', '漲潮之水', '차오르는 물'], ['The White Void', '白色虛空', '하얀 허공'], ['Throat of Flame', '火焰之喉', '불꽃의 목구멍'], ['Rain of Acorns', '果實之雨', '열매의 비'],
+    ['Perilous Footing', '危險立足', '위태로운 발판'], ['Corridor of Shadows', '影之迴廊', '그림자 회랑'], ['The Swarm’s Den', '群聚巢穴', '무리의 소굴'], ['The Endless Shaft', '無盡豎井', '끝없는 수직굴'], ['Creeping Briars', '潛伏荊棘', '숨어드는 가시덤불'],
+    ['The Moonless Room', '無月之間', '달 없는 방'], ['The Blank Knot', '空白之節', '공백의 마디'], ['Garden of Night Moths', '夜蛾庭園', '밤나방의 정원'], ['The Scorched Hollow', '焦黑洞窟', '그을린 동굴'], ['Glass Thorns', '透明之棘', '투명한 가시'],
+    ['Hall of Hidden Springs', '地下水之間', '지하수의 방'], ['The Heavy Canopy', '沉重樹梢', '무거운 우듬지'], ['Cloudpath', '雲之通道', '구름의 길'], ['Swaying Twigs', '搖曳細枝', '흔들리는 잔가지'], ['Needle Branches', '針之枝', '바늘 가지'],
+    ['Corridor of Snares', '陷阱迴廊', '덫의 회랑'], ['Hall of Cinders', '火星之間', '불티의 방'], ['The Waterveins', '水脈之道', '수맥의 길'], ['Needling Wings', '針之振翅', '바늘 날갯소리'], ['Hall of Passing Winds', '過境風之間', '지나가는 바람의 방'],
+    ['The Black Fog', '黑霧', '검은 안개'], ['The Fruitbearer’s Bough', '抱果之枝', '열매를 품은 가지'], ['The Suspended Hall', '懸空之間', '허공의 방'], ['Hall of Dancing Shades', '舞影之間', '춤추는 그림자의 방'], ['The Searing Trunk', '灼熱樹幹', '달궈진 줄기'],
+    ['The Narrow Crossing', '細渡', '좁은 건넘길'], ['Briar Labyrinth', '荊棘迷途', '가시덤불 미로'], ['Chimney to Heaven', '通天煙囪', '하늘로 가는 굴뚝'], ['The Deep Spring', '深泉', '깊은 샘'], ['Dusk Road', '薄暮之道', '땅거미의 길'],
+    ['Orchard Corridor', '果樹迴廊', '과수의 회랑'], ['The Windless Sky', '無風之空', '바람 없는 하늘'], ['Ceiling of Water', '水之穹頂', '물의 천장'], ['Knot of Crimson Fire', '紅蓮之節', '홍련의 마디'], ['Blindthorn', '盲目之棘', '눈먼 가시'],
+    ['The Branch’s Edge', '枝梢之間', '가지 끝의 방'], ['The Great Hollow', '大樹洞', '거대한 옹이'], ['Fruitfall', '果實瀑布', '열매 폭포'], ['Hall of Deep Slumber', '沉眠之間', '깊은 잠의 방'], ['The Silent Hollow', '沉默空洞', '침묵의 공동'],
+    ['Throne of the Moth Queen', '蛾后之間', '나방 여왕의 방'], ['Canopy of Plenty', '豐饒天蓋', '풍요의 천개'], ['Heart of the Flametree', '炎樹之芯', '불꽃나무의 심지'], ['Throne of Darkness', '黑暗王座', '어둠의 옥좌'], ['The Howling Well', '風鳴之井', '바람 우는 우물'],
+    ['Sky’s End', '盡頭之空', '끝의 하늘'], ['Lake in the Canopy', '樹海之湖', '수해의 호수'], ['A Thousand Twigs', '千枝', '천 개의 잔가지'], ['Storm of Wings', '振翅風暴', '날갯짓의 폭풍'], ['Veil of Thorns', '荊棘之幕', '가시의 장막'],
+    ['The Bough of Trials', '試煉之枝', '시련의 가지'], ['Hall of Three Colors', '三色之間', '삼색의 방'], ['The Storm Crown', '風暴樹梢', '폭풍의 우듬지'], ['The Final Knot', '最後之節', '마지막 마디'], ['Summit of the World Tree', '世界樹之巔', '세계수의 정상'],
+  ];
+  const FAC = [['Verdant Alliance', '翠綠同盟', '초록 동맹'], ['Crimson Legion', '赤紅軍團', '붉은 군단'], ['Azure Concord', '蒼藍聯合', '푸른 연합']];
+  // [名前, 技, 説明]
+  const SP = [
+    [['Green Fairy', 'Long Flight', 'Wings last 1.3× longer than other fairies.'], ['綠妖精', '長距飛行', '翅膀的續航是其他妖精的1.3倍'], ['초록 요정', '오래 날기', '날개 지속 시간이 다른 요정의 1.3배']],
+    [['Yellow Fairy', 'Freeze Foes', 'Press Skill to freeze nearby monsters for 2.5s (frozen ones are harmless). Once every 6s.'], ['黃妖精', '定住魔物', '按下技能，周圍的魔物會停止2.5秒（碰到停止的魔物也沒事）。每6秒一次'], ['노란 요정', '마물 정지', '기술을 누르면 주변 마물이 2.5초 멈춘다(멈춘 마물은 닿아도 괜찮다). 6초에 한 번']],
+    [['Pink Fairy', 'Bouncy Remains', 'Remains left by Pink Fairies become springs. Jump off them to soar.'], ['桃色妖精', '彈跳屍骸', '桃色妖精留下的屍骸會變成彈跳床，從上面跳能跳得很高'], ['분홍 요정', '튕기는 시체', '분홍 요정의 시체는 튕기는 발판이 된다. 거기서 뛰면 높이 오른다']],
+    [['Red Fairy', 'Fireproof', 'Unharmed by wall flames and burning branches.'], ['紅妖精', '不懼火焰', '碰到牆上噴出的火焰或燃燒的樹枝也沒事'], ['빨간 요정', '불에 강함', '벽에서 뿜는 불꽃과 불타는 가지에 닿아도 괜찮다']],
+    [['Brown Fairy', 'Wide Remains', 'Remains left by Brown Fairies make wider footholds.'], ['棕妖精', '寬大屍骸', '棕妖精留下的屍骸，落腳處比較寬'], ['갈색 요정', '넓은 시체', '갈색 요정의 시체는 발판이 넓다']],
+    [['Gray Fairy', 'Make Foothold', 'Press Skill to create a small foothold on the spot (one per life).'], ['灰妖精', '製造落腳處', '按下技能，可以在原地做出一個小落腳處（每條命一次）'], ['회색 요정', '발판 만들기', '기술을 누르면 그 자리에 작은 발판을 하나 만든다(목숨당 하나)']],
+    [['Black Fairy', 'Trapsight', 'Invisible thorns become clearly visible.'], ['黑妖精', '看穿陷阱', '隱形的荊棘看得一清二楚'], ['검은 요정', '함정 간파', '보이지 않는 가시가 똑똑히 보인다']],
+    [['Blue Fairy', 'Swimmer', 'Swim freely underwater and never run out of breath.'], ['藍妖精', '水中游泳', '能在水中自由游泳，也不會斷氣'], ['푸른 요정', '수영', '물속을 자유롭게 헤엄치고 숨도 차지 않는다']],
+    [['Purple Fairy', 'Darksight', 'See clearly even on dark floors.'], ['紫妖精', '看透黑暗', '在黑暗的樓層也看得清四周'], ['보라 요정', '어둠 투시', '어두운 층에서도 주위가 잘 보인다']],
+  ];
+  // 妖精につく名前（12文字まで）
+  const NAMES = [
+    { sep: ' ', pre: ['Lost', 'Tiny', 'Blue', 'Sleepy', 'Starry', 'Last', 'Pale', 'Dawn', 'Shy', 'Brave', 'Quiet', 'Wild', 'Dusk', 'Frosty', 'Lone', 'Gentle', 'Swift', 'Faint', 'Hushed', 'Odd'], name: ['Luka', 'Io', 'Nagi', 'Haku', 'Mao', 'Riku', 'Momo', 'Suzu', 'Fuu', 'Sora', 'Ao', 'Shino', 'Teo', 'Niko', 'Mina', 'Ivy', 'Fern', 'Wren', 'Moss', 'Pip', 'Lark', 'Bram', 'Elm'] },
+    { sep: '', pre: ['唱歌的', '小小的', '藍色的', '沉睡的', '星降的', '最後的', '無月的', '黎明的', '顫抖的', '翠綠的', '初生的', '黃昏的', '迷途的', '雪白的', '孤單的', '膽小的', '魯莽的', '遙遠的'], name: ['露卡', '伊歐', '凪', '椿', '小白', '雪', '真央', '陸', '小桃', '鈴', '雲雀', '風', '小歌', '空', '小青', '忍', '泰歐', '妮可', '美奈', '旅人', '學徒', '弓兵', '吟遊詩人', '鐵匠', '藥師', '學者'] },
+    { sep: ' ', pre: ['노래하는', '작은', '푸른', '잠든', '별빛', '마지막', '달 없는', '새벽의', '떨리는', '초록빛', '처음의', '황혼의', '길 잃은', '하얀', '외로운', '겁많은', '무모한', '먼'], name: ['루카', '이오', '나기', '츠바키', '하쿠', '세츠', '마오', '리쿠', '모모', '스즈', '후우', '소라', '아오', '시노', '테오', '니코', '미나', '나그네', '견습생', '궁수', '음유시인', '대장장이', '약사', '학자'] },
+  ];
+
+  FT.T = function (ja) {
+    let s = ja;
+    if (IX !== undefined) { const v = D[ja]; if (v && v[IX] !== undefined) s = v[IX]; }
+    for (let i = 1; i < arguments.length; i++) s = s.split('{' + (i - 1) + '}').join(arguments[i]);
+    return s;
+  };
+  FT.TF = (f, ja) => (IX !== undefined && FLOORS[f - 1]) ? FLOORS[f - 1][IX] : ja;
+  if (IX !== undefined) {
+    FT.NAMES = NAMES[IX];
+    FT.FAC.forEach((F, i) => { F.name = FAC[i][IX]; });
+    FT.SP.forEach((S, i) => { const v = SP[i][IX]; S.name = v[0]; S.skill = v[1]; S.how = v[2]; });
+  }
+
+  // 画面の文字（index.html）：日本語の文をそのまま入れかえる
+  FT.applyDOM = function (root) {
+    if (IX === undefined) return;
+    root = root || document.body;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentNode && /^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const list = []; while (w.nextNode()) list.push(w.currentNode);
+    for (const n of list) { const t = n.nodeValue.trim(); if (t && D[t]) n.nodeValue = n.nodeValue.replace(t, D[t][IX]); }
+    for (const el of root.querySelectorAll('[aria-label],[placeholder]')) for (const a of ['aria-label', 'placeholder']) { const v = el.getAttribute(a); if (v && D[v]) el.setAttribute(a, D[v][IX]); }
+  };
+  // 書体と言語の印
+  document.documentElement.lang = { ja: 'ja', en: 'en', zh: 'zh-Hant', ko: 'ko' }[L];
+  document.documentElement.dataset.lang = L;
+  const FONT = { zh: 'Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;700', ko: 'Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;700', en: 'Cinzel:wght@600;700&family=Nunito:wght@400;700' }[L];
+  if (FONT) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + FONT + '&display=swap'; document.head.appendChild(l); }
+})(window);
