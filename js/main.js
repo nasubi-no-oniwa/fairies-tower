@@ -429,6 +429,18 @@
       if (br[0] === lv.h - 1) { ART.floorFoliage(b, br[0], cam, z, ta, lights, lv.f === 1); return; }
       ART.branch(b, br, i, cam, z, ta, br[3] ? FT.burnAt(br[3], br[4], s) : null, lights);
     });
+    // ---- 第1層の根もと：むかし別の塔で眠った、箱の屍がひとつ（遊びには関わらない） ----
+    if (lv.f === 1 && vis(lv.h - 1, 2)) {
+      const bx = X(17.15), by = Y(lv.h - 1) - 11, w = 11;
+      b.fillStyle = 'hsl(18,28%,36%)'; b.fillRect(bx, by, w, w);
+      b.fillStyle = 'hsl(18,30%,46%)'; b.fillRect(bx, by, w, 2);
+      b.fillStyle = 'rgba(0,0,0,.3)'; b.fillRect(bx, by + w - 2, w, 2); b.fillRect(bx + w - 1, by, 1, w);
+      b.fillStyle = '#1a1520';
+      for (const ex of [bx + 2, bx + 6]) { b.fillRect(ex, by + 4, 1, 1); b.fillRect(ex + 2, by + 4, 1, 1); b.fillRect(ex + 1, by + 5, 1, 1); b.fillRect(ex, by + 6, 1, 1); b.fillRect(ex + 2, by + 6, 1, 1); }
+      b.fillStyle = '#4f8a3c'; b.fillRect(bx + 1, by - 1, 3, 1); b.fillRect(bx + 7, by - 1, 2, 1); b.fillRect(bx, by, 1, 3);
+      b.fillStyle = '#7fd06a'; b.fillRect(bx + 8, by - 3, 1, 2); b.fillRect(bx + 7, by - 4, 1, 1); b.fillRect(bx + 9, by - 4, 1, 1);
+      lights.push([17.15 + w / PXs / 2, lv.h - 1.4, 1.1, [255, 210, 140], .22 + .06 * Math.sin(ta * 1.3)]);
+    }
     // ---- 槍・炎 ----
     const poke = (q, fire) => {
       if (!vis(q[0])) return; const o = FT.pokeOut(q[3], q[4], s), left = q[1] < 0, wx = left ? 1 : COLS - 1, yy = Y(q[0]);
