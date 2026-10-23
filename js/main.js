@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '17';
+  FT.VER = '18';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = FT.T, fmt = n => Number(n || 0).toLocaleString(FT.LOCALE || 'ja-JP');

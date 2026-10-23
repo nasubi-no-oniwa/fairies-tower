@@ -22,7 +22,7 @@ const order = [];
 { const R = rng(20261021); for (let round = 0; round < 10; round++) { const a = [0, 1, 2, 3, 4, 5, 6, 7, 8]; for (let i = 8; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } order.push(...a.map(t => ({ t, round }))); } }
 // 第70層から上は、試しに昇る人（tools/bot.js）でちょうどよい難しさになる作り方（SALT）を選んである（tools/tunefloors.js）
 const SALT = { 70: 4, 71: 13, 72: 14, 73: 8, 74: 4, 75: 5, 76: 0, 77: 0, 78: 3, 79: 5, 80: 0, 81: 1, 82: 10, 83: 0, 84: 5, 85: 1, 86: 0, 87: 0, 88: 1, 89: 0, 90: 7, 91: 0, 92: 3, 93: 1, 94: 2, 95: 17, 96: 0, 97: 7, 98: 14, 99: 4, 100: 0 };
-const HARD_FROM = 101;   // この層から上を「長く・手ごわく」する（越えた層・挑戦中の層より上だけにすること）
+const HARD_FROM = 96;   // この層から上を「長く・手ごわく」する（越えた層・挑戦中の層より上だけにすること）
 function gen(f, salt) {
   if (salt === undefined) salt = f >= HARD_FROM ? SALT[f] || 0 : 0;
   const R = rng(f * 7919 + 13 + salt * 100003), d = f / 100;
