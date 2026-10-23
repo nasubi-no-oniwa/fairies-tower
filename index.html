@@ -117,37 +117,143 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 #flList button { appearance: none; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: rgba(191, 233, 255, .05); font-size: 13px; font-variant-numeric: tabular-nums; }
 #flList button.now { border-color: var(--wing); background: rgba(127, 227, 201, .18); }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+/* =========================================================
+   見た目の作りなおし（v6）
+   ========================================================= */
+#tbg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; z-index: 0; pointer-events: none; }
+#wrap:has(#game.on) #tbg { display: none; }
+.screen { z-index: 1; }
+#title { background: linear-gradient(180deg, rgba(4,10,20,0) 0%, rgba(4,10,20,0) 30%, rgba(4,10,18,.55) 62%, rgba(3,8,14,.85) 100%); gap: 14px; }
+.hero { text-align: center; padding-top: 10px; }
+.kick { margin: 0; font-size: 11px; letter-spacing: .5em; color: rgba(233,243,239,.55); text-indent: .5em; }
+#title h1, .spL { margin: 2px 0 6px; font-family: var(--display); font-weight: 700; line-height: .95; display: grid; justify-items: center; }
+#title h1 .l1, .spL .l1 { font-size: 22px; letter-spacing: .32em; text-indent: .32em; color: #cfeee4; }
+#title h1 .l2, .spL .l2 { font-size: 52px; letter-spacing: .1em; text-indent: .1em; background: linear-gradient(180deg, #fffbe6 0%, #ffe9a8 45%, #8fe8c9 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 14px rgba(255, 233, 168, .45)) drop-shadow(0 2px 0 rgba(0,0,0,.5)); }
+#title .lead { text-shadow: 0 1px 6px #000; color: #b9cdc6; }
+.treebox { position: relative; border-radius: 16px; border: 1px solid rgba(255, 233, 168, .18); background: radial-gradient(80% 70% at 50% 30%, rgba(255, 233, 168, .07), rgba(4, 10, 14, .55)); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); overflow: hidden; }
+#tree { background: none; border: 0; border-radius: 0; height: 260px; }
+.status { background: rgba(6, 16, 22, .62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.me { appearance: none; display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px 10px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(6, 16, 22, .62); text-align: left; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: transform .12s, border-color .2s; }
+.me canvas { width: 56px; height: 56px; flex: none; image-rendering: pixelated; border-radius: 12px; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c, #7fe3c9) 35%, transparent), transparent 70%); }
+.meTx { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.meTx small { font-size: 11px; color: var(--dim); }
+.meTx b { font-family: var(--display); font-size: 18px; letter-spacing: .04em; color: var(--c, var(--ink)); }
+.meTx span { font-size: 12px; color: #cfe0da; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meGo { font-size: 12px; color: var(--dim); flex: none; }
+.me.empty { border-color: rgba(255, 233, 168, .6); animation: beckon 1.8s ease-in-out infinite; }
+@keyframes beckon { 50% { box-shadow: 0 0 0 4px rgba(255, 233, 168, .14), 0 0 24px rgba(255, 233, 168, .2); } }
+.go { position: relative; overflow: hidden; background: linear-gradient(180deg, #a8f4dc, #5fd3b0); color: #04201a; letter-spacing: .08em; border: 1px solid rgba(255,255,255,.35); box-shadow: 0 0 0 1px rgba(0,0,0,.3), 0 8px 28px rgba(127, 227, 201, .35), inset 0 1px 0 rgba(255,255,255,.6); transition: transform .1s, filter .2s; }
+.go::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-18deg); animation: sheen 3.6s ease-in-out infinite; }
+@keyframes sheen { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.go:disabled::after { display: none; }
+.go:active, .mb:active, .sub2:active, .li:active, .me:active, .sp:active, .hb:active, .tg:active { transform: scale(.96); }
+.menu { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mb { appearance: none; display: grid; justify-items: center; gap: 4px; padding: 10px 2px 9px; border-radius: 14px; border: 1px solid var(--line); background: rgba(6, 16, 22, .62); font: 700 12px var(--body); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: transform .1s, border-color .2s; }
+.mb i { font-style: normal; font-size: 18px; color: #ffe9a8; line-height: 1; height: 20px; display: grid; place-items: center; }
+.foot { color: rgba(147,170,163,.8); }
+/* ---- 重ねる画面：ふわっと出る ---- */
+.over { background: rgba(3, 8, 12, .62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.over.on { animation: ovIn .22s ease-out; }
+.over.on .card { animation: cardIn .34s cubic-bezier(.2, .9, .25, 1.12); }
+@keyframes ovIn { from { opacity: 0; } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(26px) scale(.97); } }
+.card { background: linear-gradient(180deg, rgba(16, 34, 40, .96), rgba(7, 17, 22, .97)); border-color: rgba(255, 233, 168, .2); box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); position: relative; }
+.card::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 233, 168, .7), transparent); }
+.card.wide { max-width: 520px; }
+.card.narrow { max-width: 340px; }
+.over.sheet { place-items: end center; padding-bottom: 0; }
+.over.sheet .card { border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 560px; }
+.over.sheet.on .card { animation: sheetIn .32s cubic-bezier(.2, .9, .25, 1); }
+@keyframes sheetIn { from { transform: translateY(100%); } }
+.over.blur { backdrop-filter: blur(9px) saturate(.6); -webkit-backdrop-filter: blur(9px) saturate(.6); background: rgba(3, 8, 12, .45); }
+.list { display: grid; gap: 8px; }
+.li { appearance: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(191, 233, 255, .04); text-align: left; font: 700 15px var(--body); transition: transform .1s; }
+.li i { font-style: normal; width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center; background: rgba(255, 233, 168, .1); color: #ffe9a8; font-size: 16px; }
+.li small { display: block; font-weight: 400; font-size: 12px; color: var(--dim); }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.tg { appearance: none; min-width: 120px; min-height: 40px; border-radius: 999px; border: 1px solid var(--wing); background: rgba(127, 227, 201, .15); font: 700 14px var(--body); }
+.tg.off { border-color: var(--line); background: transparent; color: var(--dim); }
+.credit { font-size: 12px; line-height: 1.8; color: var(--dim); padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.25); }
+.credit b { display: block; color: var(--ink); font-size: 13px; }
+/* ---- 妖精えらび：陣営の旗と、裏返るカード ---- */
+.facs { gap: 10px; }
+.fac { gap: 8px; animation: facIn .5s cubic-bezier(.2, .9, .25, 1) both; animation-delay: var(--d, 0s); }
+@keyframes facIn { from { opacity: 0; transform: translateY(18px); } }
+.fac h3 { position: relative; border: 0; padding: 8px 0 14px; font-size: 13px; background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 30%, transparent), color-mix(in srgb, var(--fc) 8%, transparent)); clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%); text-shadow: 0 1px 4px #000; color: var(--ink); }
+.fac h3 .emb { display: block; width: 10px; height: 10px; margin: 0 auto 4px; transform: rotate(45deg); background: var(--fc); box-shadow: 0 0 10px var(--fc); }
+.fac { color: inherit; }
+.sp { display: block; padding: 0; min-height: 0; border: 0; background: none; perspective: 600px; height: 96px; color: var(--ink); }
+.sp .in { position: relative; display: block; width: 100%; height: 100%; transition: transform .55s cubic-bezier(.3, 1.3, .4, 1); transform-style: preserve-3d; }
+.sp.on .in { transform: rotateY(180deg); }
+.sp .fr, .sp .bk { position: absolute; inset: 0; display: grid; justify-items: center; align-content: center; gap: 2px; border-radius: 12px; border: 1px solid var(--line); background: radial-gradient(90% 70% at 50% 35%, color-mix(in srgb, var(--c) 22%, transparent), rgba(6, 16, 22, .9)); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.sp .bk { transform: rotateY(180deg); border-color: var(--c); box-shadow: 0 0 18px color-mix(in srgb, var(--c) 45%, transparent), inset 0 0 0 1px var(--c); background: radial-gradient(90% 80% at 50% 30%, color-mix(in srgb, var(--c) 40%, transparent), rgba(6, 16, 22, .92)); }
+.sp canvas { width: 48px; height: 48px; image-rendering: pixelated; }
+.sp .nm { font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; padding: 0 4px; }
+.sp .bk .nm { color: #fff6d8; }
+.sp.on, .sp.on .in { box-shadow: none; }
+.spinfo { min-height: 72px; }
+/* ---- 一時停止のボタン ---- */
+#gBack { font-size: 13px; font-weight: 700; letter-spacing: -.1em; }
+/* ---- 層の帯 ---- */
+#fBanner { position: absolute; left: 0; right: 0; top: 34%; display: none; justify-content: center; pointer-events: none; z-index: 4; }
+#fBanner.on { display: flex; }
+.fbIn { display: grid; justify-items: center; gap: 2px; width: 100%; padding: 14px 10px 16px; background: linear-gradient(90deg, transparent, rgba(0,0,0,.62) 22%, rgba(0,0,0,.62) 78%, transparent); position: relative; }
+.fbIn::before, .fbIn::after { content: ""; position: absolute; left: 12%; right: 12%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 233, 168, .8), transparent); }
+.fbIn::before { top: 0; } .fbIn::after { bottom: 0; }
+.fbK { font-size: 12px; letter-spacing: .5em; text-indent: .5em; color: #ffe9a8; }
+.fbN { font-family: var(--display); font-size: 30px; letter-spacing: .14em; text-indent: .14em; color: #fffbe6; text-shadow: 0 0 18px rgba(255, 233, 168, .5); }
+.fbS { font-size: 12px; color: #cfe0da; min-height: 1em; }
+#fBanner.on .fbIn { animation: fb 3.2s ease-in-out both; }
+#fBanner.on .fbIn::before, #fBanner.on .fbIn::after { animation: fbLine 3.2s ease-out both; }
+@keyframes fb { 0% { opacity: 0; letter-spacing: .3em; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes fbLine { 0% { transform: scaleX(0); } 30% { transform: scaleX(1); } }
+/* ---- はじまり ---- */
+#splash { position: absolute; inset: 0; z-index: 30; display: grid; place-content: center; justify-items: center; gap: 18px; background: radial-gradient(100% 60% at 50% 42%, rgba(6, 14, 30, .55), rgba(2, 5, 10, .9) 75%); cursor: pointer; transition: opacity .7s, filter .7s; }
+#wrap:has(#splash:not(.out)) #title { visibility: hidden; }
+#splash.out { opacity: 0; filter: blur(6px); pointer-events: none; }
+#splash .spK { margin: 0; font-size: 13px; letter-spacing: .6em; text-indent: .6em; color: #cfe0da; opacity: 0; animation: spK 3s ease-in-out .2s both; }
+@keyframes spK { 0% { opacity: 0; } 30%, 60% { opacity: 1; } 100% { opacity: .6; } }
+#splash .spL { opacity: 0; animation: spL 1.6s ease-out 1.6s both; }
+#splash .spL small { display: block; margin-top: 12px; font-family: var(--body); font-size: 13px; letter-spacing: .4em; text-indent: .4em; color: #b9cdc6; }
+@keyframes spL { from { opacity: 0; transform: translateY(10px); filter: blur(8px); } }
+#splash .spT { margin: 26px 0 0; font-size: 14px; letter-spacing: .3em; color: #ffe9a8; opacity: 0; animation: spT 2.2s ease-in-out 3s infinite; }
+@keyframes spT { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+#splash.skip * { animation-delay: 0s !important; animation-duration: .3s; }
+#splash.skip .spT { animation: spT 2.2s ease-in-out infinite; }
+#clBig b { color: #ffe9a8; text-shadow: 0 0 16px rgba(255, 233, 168, .5); }
+@media (prefers-reduced-motion: reduce) { .over.on, .over.on .card, .fac, .sp .in, .go::after, #splash * { animation: none !important; transition: none !important; } #splash .spK, #splash .spL, #splash .spT { opacity: 1; } }
 </style>
 </head>
 <body>
 <div id="wrap">
+  <canvas id="tbg" aria-hidden="true"></canvas>
   <!-- ========== タイトル ========== -->
   <section class="screen on" id="title">
-    <h1>Fairies' Tower</h1>
-    <p class="lead">3つの陣営に分かれて、100層の世界樹を昇る。<br>倒れた妖精は浮かぶ屍になって、仲間の足場になる。</p>
-    <canvas id="tree" aria-label="世界樹と、3つの陣営がどこまで昇ったか"></canvas>
+    <header class="hero">
+      <p class="kick">なすびのお庭</p>
+      <h1><span class="l1">Fairies'</span><span class="l2">Tower</span></h1>
+      <p class="lead">3つの陣営に分かれて、100層の世界樹を昇る。<br>倒れた妖精は浮かぶ屍になって、仲間の足場になる。</p>
+    </header>
+    <div class="treebox"><canvas id="tree" aria-label="世界樹と、3つの陣営がどこまで昇ったか"></canvas></div>
     <div id="endBanner" hidden></div>
     <div class="status">
       <div class="big" id="tLatest">第1層<small></small></div>
       <div class="num">死んだ数 <b id="tDead">0</b></div>
       <div class="sub" id="tSub"></div>
     </div>
-    <div class="pick">
-      <h2>妖精をえらぶ（いつでも変えられる）</h2>
-      <div class="facs" id="facs"></div>
-      <div class="spinfo" id="spInfo"></div>
-    </div>
-    <button class="go" id="bGo">昇りはじめる</button>
-    <div class="row">
-      <button class="sub2" id="bFloors">層をえらぶ</button>
-      <button class="sub2" id="bStone">碑</button>
-      <button class="sub2" id="bHow">あそびかた</button>
-    </div>
-    <div class="row">
-      <button class="sub2" id="bShare">Xに投稿</button>
-      <button class="sub2" id="bCode">引き継ぎ</button>
-      <button class="sub2" id="bSnd">♪ 音あり</button>
-    </div>
+    <button class="me" id="meCard" aria-label="妖精をえらぶ">
+      <canvas id="meSp" width="16" height="16" aria-hidden="true"></canvas>
+      <span class="meTx"><small id="meFac">あなたの妖精</small><b id="meName">まだえらんでいない</b><span id="meSk"></span></span>
+      <span class="meGo">かえる ›</span>
+    </button>
+    <button class="go" id="bGo"><span>昇りはじめる</span></button>
+    <nav class="menu">
+      <button class="mb" id="bFloors"><i>▤</i>層をえらぶ</button>
+      <button class="mb" id="bStone"><i>◆</i>碑</button>
+      <button class="mb" id="bHow"><i>？</i>あそびかた</button>
+      <button class="mb" id="bMore"><i>…</i>その他</button>
+    </nav>
     <p class="foot" id="foot">なすびのお庭</p>
   </section>
 
@@ -161,7 +267,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
       </div>
       <div>
         <div id="hStats">この層の死 <b id="hDead">0</b><br><span id="hFac"></span></div>
-        <div class="hbtns"><button class="hb" id="gShare" aria-label="Xに投稿">𝕏</button><button class="hb" id="gHow" aria-label="あそびかた">？</button><button class="hb" id="gBack" aria-label="タイトルへ">✕</button></div>
+        <div class="hbtns"><button class="hb" id="gShare" aria-label="Xに投稿">𝕏</button><button class="hb" id="gHow" aria-label="あそびかた">？</button><button class="hb" id="gBack" aria-label="一時停止">Ⅱ</button></div>
       </div>
     </div>
     <div id="pad">
@@ -169,7 +275,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
       <div class="zone" id="zR"><button class="btn" id="bSk" aria-label="技">技<small id="skName"></small></button><button class="btn" id="bj" aria-label="跳ぶ・飛ぶ">飛ぶ</button></div>
     </div>
     <div id="wbar"><button class="sub2" id="wReplay">一番乗りの昇り方</button><button class="sub2" id="wFree">自由に見る</button><button class="sub2" id="wPlay">この層を昇る</button></div>
-    <div class="keys" id="keys">← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc でタイトルへ</div>
+    <div class="keys" id="keys">← → で動く　スペース（または ↑）を押し続けると飛ぶ　X で技　Esc で一時停止</div>
+    <div id="fBanner" aria-live="polite"><div class="fbIn"><span class="fbK"></span><span class="fbN"></span><span class="fbS"></span></div></div>
     <div id="toast"></div>
     <div id="loading">屍を読みこんでいます…</div>
   </section>
@@ -241,13 +348,73 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
     <p class="note">遅れている陣営ほど、翅が少し長くもつ（追い上げ）。頂上の扉は、ほかの陣営のどれかが第80層まで来ると開く。</p>
     <button class="go" id="howClose">わかった</button>
   </div></div>
+
+  <!-- ========== 妖精をえらぶ ========== -->
+  <div class="over" id="oPick"><div class="card wide">
+    <h2>妖精をえらぶ</h2>
+    <p class="note" id="pkLead">妖精の色で、入る陣営が決まる。陣営ごとに、べつべつの世界樹を昇る。いつでも変えられる。</p>
+    <div class="pick">
+      <div class="facs" id="facs"></div>
+      <div class="spinfo" id="spInfo"></div>
+    </div>
+    <button class="go" id="pkDone">この妖精で昇る</button>
+    <button class="sub2" id="pkClose">閉じる</button>
+  </div></div>
+
+  <!-- ========== その他 ========== -->
+  <div class="over sheet" id="oMore"><div class="card">
+    <h2>その他</h2>
+    <div class="list">
+      <button class="li" id="bShare"><i>𝕏</i><span>Xに投稿<small>いまの世界樹を絵にして投稿</small></span></button>
+      <button class="li" id="bCode"><i>⇄</i><span>引き継ぎ<small>別の端末でも同じ記録で遊ぶ</small></span></button>
+      <button class="li" id="bSet"><i>⚙</i><span>設定<small>音・画質・クレジット</small></span></button>
+    </div>
+    <button class="sub2" id="moClose">閉じる</button>
+  </div></div>
+
+  <!-- ========== 設定 ========== -->
+  <div class="over" id="oSet"><div class="card">
+    <h2>設定</h2>
+    <div class="set"><span>音</span><button class="tg" id="bSnd">♪ 音あり</button></div>
+    <div class="set"><span>画質</span><button class="tg" id="bQ">きれい</button></div>
+    <p class="note">「かるい」にすると光の筋をへらして、古い端末でも動きやすくなります。</p>
+    <div class="credit">
+      <b>クレジット</b>
+      企画・制作：なすびのお庭<br>
+      背景素材：edermunizz「Free Pixel Art Forest」<br>
+      素材：Anokolisa「Legacy Fantasy - High Forest」<br>
+      妖精・世界樹のドット絵：なすびのお庭
+    </div>
+    <button class="sub2" id="setClose">閉じる</button>
+  </div></div>
+
+  <!-- ========== 一時停止 ========== -->
+  <div class="over blur" id="oPause"><div class="card narrow">
+    <h2>一時停止</h2>
+    <p class="note" id="psInfo"></p>
+    <button class="go" id="psResume">つづける</button>
+    <div class="list">
+      <button class="li" id="psHow"><i>？</i><span>あそびかた</span></button>
+      <button class="li" id="psSnd"><i>♪</i><span id="psSndT">音あり</span></button>
+      <button class="li" id="psTitle"><i>⌂</i><span>タイトルへもどる</span></button>
+    </div>
+  </div></div>
+
+  <!-- ========== はじまり ========== -->
+  <div id="splash" role="button" aria-label="タップしてはじめる">
+    <p class="spK">なすびのお庭</p>
+    <div class="spL"><span class="l1">Fairies'</span><span class="l2">Tower</span><small>世界樹を、屍で昇れ</small></div>
+    <p class="spT">タップしてはじめる</p>
+  </div>
 </div>
 <script src="js/config.js?v=4"></script>
 <script src="js/engine.js?v=4"></script>
+<script src="js/art.js?v=6"></script>
 <script src="js/verify.js?v=4"></script>
 <script src="js/net.js?v=4"></script>
-<script src="js/sound.js?v=4"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/sound.js?v=6"></script>
+<script src="js/main.js?v=6"></script>
+<script src="js/ui.js?v=6"></script>
 <script>
 // スマホで続けてタップしたときに、画面が拡大されないようにする（iPhoneは「拡大しない」の設定を無視するため）
 (function () {

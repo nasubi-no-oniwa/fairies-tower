@@ -127,6 +127,13 @@
       case 'tap': note(d, t, 84, 0.05, 'sine', 0.06); break;
       case 'warn': note(d, t, 88, 0.06, 'square', 0.03); break;
       case 'fire': noise(d, t, 0.3, 0.06, 900, 'bandpass'); break;
+      case 'ui': note(d, t, 79, 0.07, 'sine', 0.05); note(d, t + 0.04, 86, 0.12, 'sine', 0.04); noise(d, t, 0.12, 0.02, 4000, 'bandpass'); break;
+      case 'close': note(d, t, 84, 0.06, 'sine', 0.04); note(d, t + 0.04, 77, 0.1, 'sine', 0.035); break;
+      case 'flip': noise(d, t, 0.09, 0.05, 2600, 'bandpass'); note(d, t + 0.08, 88, 0.18, 'triangle', 0.05); note(d, t + 0.12, 95, 0.25, 'sine', 0.035); break;
+      case 'banner': note(d, t, 48, 2.2, 'sine', 0.09, { a: 0.02, r: 1.8 }); note(d, t, 60, 1.8, 'triangle', 0.035, { a: 0.02, r: 1.5 }); note(d, t + 0.02, 67, 1.6, 'sine', 0.03, { a: 0.03, r: 1.4, vib: 1 }); noise(d, t, 0.6, 0.03, 500, 'lowpass'); break;
+      case 'start': [55, 62, 67, 74, 79].forEach((m, i) => note(d, t + i * 0.12, m, 1.6 - i * 0.15, 'sine', 0.05, { a: 0.02, r: 1.2 })); noise(d, t, 1.2, 0.025, 1800, 'bandpass'); break;
+      case 'pause': note(d, t, 72, 0.12, 'sine', 0.05); note(d, t + 0.07, 67, 0.2, 'sine', 0.04); break;
+      case 'fall': noise(d, t, 0.6, 0.05, 300, 'lowpass'); note(d, t, 43, 0.7, 'sine', 0.08, { slide: -7 }); break;
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
