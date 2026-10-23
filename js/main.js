@@ -483,20 +483,28 @@
       if (sp === 6) lights.push([q[0], q[1], 1.2, [224, 74, 106], .5 * a]);
     }
     // ---- 屍（浮かぶ足場） ----
+    //  妖精から遠い屍・通り過ぎた下の屍は、うすく暗くする（いま昇っている所の足場だけが目立つように）
+    const rx = S.watch ? 10 : p.x + PW / 2, ry = S.watch ? cam + VH * .5 : p.y + PH / 2;
     for (const c of run.cl) {
       if (!vis(c.y, 2)) continue;
+      const dx = c.x - rx, dy = c.y - ry, d = Math.hypot(dx, dy * .8);
+      let fade = d < 4 ? 1 : d > 10 ? .42 : 1 - (d - 4) / 6 * .58;
+      if (!S.watch && dy > 6) fade = Math.min(fade, .3);
+      const src0 = S.cor.get(c.k); if (src0 && src0.glow > 0) fade = Math.max(fade, .6 + .4 * src0.glow);
+      b.globalAlpha = fade;
       const src = S.cor.get(c.k) || {}, bob = Math.round(Math.sin(ta * 1.6 + c.x) * 1);
       if (src.glow > 0) src.glow = Math.max(0, src.glow - .01);
       const col = c.s === 2 ? '#ff9ccf' : fcol, wpx = Math.round(c.w * PXs), pad = ART.padCanvas(wpx, col, c.s === 4 ? 4 : c.s === 2 ? 2 : 0);
       const cx = X(c.x), cy = Y(c.y) + bob, n = src.nAll || c.n, face = (c.k % 2) ? 1 : -1;
       b.drawImage(pad, cx - (wpx + 4) / 2, cy - 2);
-      if (n >= 3) ART.sleeper(b, c.s, cx - 4 * face, cy - 14, -face, .55);
-      if (n >= 2) ART.sleeper(b, c.s, cx + 4 * face, cy - 13, face, .7);
+      if (n >= 3) ART.sleeper(b, c.s, cx - 4 * face, cy - 14, -face, .55 * fade);
+      if (n >= 2) ART.sleeper(b, c.s, cx + 4 * face, cy - 13, face, .7 * fade);
       ART.sleeper(b, c.s, cx, cy - 12, face);
+      b.globalAlpha = 1;
       if (c.shield && run.t - c.shield < 30) { b.globalAlpha = 1 - (run.t - c.shield) / 30; ART.dotEllipse(b, cx, cy - 4, 9, 9, 0, 'rgba(255,210,154,.6)', '#ffd29a'); b.globalAlpha = 1; }
-      lights.push([c.x, c.y - .4, 1.8 + Math.min(1.4, n * .12), ART.hex(col), .75 + .5 * (src.glow || 0) + Math.min(.25, n * .02)]);
-      const hN = S.watch ? 0 : HELP.get(mineKey(N.fac, lv.f, c.k)) || 0;
-      labels.push([c.x, c.y - 1.3 + bob / PXs, (n > 1 ? `${src.name || ''}　${T('{0}人', fmt(n))}` : (src.name || '')) + (hN > 0 ? T('（{0}人の足場）', fmt(hN)) : '')]);
+      lights.push([c.x, c.y - .4, 1.8 + Math.min(1.4, n * .12), ART.hex(col), (.75 + .5 * (src.glow || 0) + Math.min(.25, n * .02)) * (.35 + .65 * fade)]);
+      // 名前は、見るモードのときだけ出す（遊んでいる間は出さない）
+      if (S.watch) labels.push([c.x, c.y - 1.3 + bob / PXs, n > 1 ? `${src.name || ''}　${T('{0}人', fmt(n))}` : (src.name || '')]);
     }
     // ---- 灰の足場 ----
     if (run.block) { const bk = run.block; ART.spr(b, 'stone', X(bk.x - 1.1), Y(bk.y) - 3, false, Math.round(2.2 * PXs), 12); }
