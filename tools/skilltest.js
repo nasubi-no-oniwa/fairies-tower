@@ -2,17 +2,19 @@
 require('../js/engine.js'); const FT = globalThis.FT;
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ○', m); } else { fail++; console.log('  ×', m); } };
 const lv = { h: 60, br: [[59, 1, 19]] };
-// 灰：空中で足場を作って、そこに降りる
-{ const r = new FT.Run(lv, new Map(), { sp: 5 }); let placed = false;
-  while (!r.over && r.t < 2000) { const b = r.t < 60 ? 4 : r.t === 61 ? 8 : 0; r.step(b); if (r.block) placed = true; if (placed && r.p.on && r.t > 70) break; }
-  ok(placed && r.p.on && Math.abs(r.p.y + 0.9 - r.block.y) < .01, `灰の妖精：空中に足場を作って立てる（高さ ${(59 - r.block.y).toFixed(2)}）`);
-  const g0 = r.p.gauge; for (let i = 0; i < 120; i++) r.step(0); ok(r.p.gauge > g0, '足場の上で翅が戻る');
-  r.step(8); ok(r.events.filter(e => e.k === 'block').length <= 1, '足場は1つの命で1つ'); }
-// 黄：魔物を止める
-{ const lv2 = { h: 30, br: [[29, 1, 19]], mo: [[27.5, 9, 11, 3, 0, 0]] };
-  const r = new FT.Run(lv2, new Map(), { sp: 1 }); r.step(8); ok(r.frz.size === 1, '黄の妖精：近くの魔物が止まる');
-  let alive = true; for (let i = 0; i < 280; i++) { r.step(0); if (r.over) { alive = false; break; } } ok(alive, '止まっている間は触れても平気');
-  const r2 = new FT.Run(lv2, new Map(), { sp: 3 }); let died = null; for (let i = 0; i < 1200 && !r2.over; i++) r2.step(i % 120 < 60 ? 4 : 0); ok(r2.dead === 'moth' || r2.dead === 'wing', `ほかの妖精は魔物で死ぬ（${r2.dead}）`); }
+// 灰：空中で翅が尽きると、1回の命で1度だけ足もとに足場が出る
+{ const r = new FT.Run(lv, new Map(), { sp: 5 }); let placedAt = -1;
+  while (!r.over && r.t < 3000) { r.step(4); if (r.block && placedAt < 0) placedAt = r.t; if (placedAt > 0 && r.p.on) break; }
+  ok(placedAt > 0 && !r.over && r.p.on && Math.abs(r.p.y + 0.9 - r.block.y) < .01, `灰の妖精：翅が尽きると足場が出て立てる（高さ ${r.block ? (59 - r.block.y).toFixed(2) : '-'}）`);
+  for (let i = 0; i < 120; i++) r.step(0); ok(r.p.gauge > .9, '足場の上で翅が戻る');
+  while (!r.over && r.t < 9000) r.step(4); ok(r.over && r.dead === 'wing' && r.events.length >= 0, `2回目は力尽きる（${r.dead}）`);
+  const r2 = new FT.Run(lv, new Map(), { sp: 3 }); while (!r2.over) r2.step(4); ok(r2.dead === 'wing' && !r2.block, 'ほかの妖精は足場が出ない'); }
+// 黄：魔物がいつも少しゆっくり動く
+{ const m = [27.5, 4, 16, 3, 0, 0]; const a = FT.mothAt(m, FT.mothT(1, 2)), b = FT.mothAt(m, FT.mothT(3, 2));
+  ok(Math.abs(FT.mothT(1, 10) - 6.5) < 1e-9 && FT.mothT(3, 10) === 10, '黄の妖精には魔物が0.65倍の速さ');
+  ok(a.x !== b.x, `同じ時刻でも魔物の位置がちがう（${a.x.toFixed(2)} と ${b.x.toFixed(2)}）`);
+  const lv2 = { h: 30, br: [[29, 1, 19]], mo: [[27.5, 9, 11, 3, 0, 0]] };
+  const r2 = new FT.Run(lv2, new Map(), { sp: 3 }); for (let i = 0; i < 1200 && !r2.over; i++) r2.step(i % 120 < 60 ? 4 : 0); ok(r2.dead === 'moth' || r2.dead === 'wing', `魔物には触れると死ぬ（${r2.dead}）`); }
 // 赤：炎で死なない
 { const lv3 = { h: 30, br: [[29, 1, 19, 1, 0]], fj: [] };
   const r = new FT.Run(lv3, new Map(), { sp: 3 }); for (let i = 0; i < 600 && !r.over; i++) r.step(0); ok(!r.over, '赤の妖精：燃える枝でも平気');

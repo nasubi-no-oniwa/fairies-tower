@@ -158,7 +158,7 @@
   function paintPick() { $('pkDone').disabled = !hasSp() || FT.SP[UI.ME.sp].fac !== pickFac; $('pkDone').textContent = hasSp() && FT.SP[UI.ME.sp].fac === pickFac ? T('{0}で決める', FT.SP[UI.ME.sp].name) : T('妖精をえらんでください'); }
   $('meCard').onclick = () => { if (!hasSp()) openFac(true); else openPick(false); };
   // ---------- 陣営えらび ----------
-  const MOTTO = [T('翅と芽吹き。長く飛び、魔物を止め、はねる屍で跳ぶ'), T('炎と大地。炎に強く、広い屍を作り、足場を生む'), T('水と闇。罠を見抜き、水を泳ぎ、闇を見通す')];
+  const MOTTO = [T('翅と芽吹き。長く飛び、魔物を鈍らせ、はねる屍で跳ぶ'), T('炎と大地。炎に強く、広い屍を作り、足場を生む'), T('水と闇。罠を見抜き、水を泳ぎ、闇を見通す')];
   let facFirst = false;
   function openFac(first) {
     facFirst = !!first;

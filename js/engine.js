@@ -32,11 +32,11 @@
   // sk：技の種類（none は、いつも効いている）
   FT.SP = [
     { name: '緑の妖精', fac: 0, color: '#7ddc8a', skill: '長く飛べる', sk: 'none', how: '翅のもちが、ほかの妖精の1.3倍' },
-    { name: '黄の妖精', fac: 0, color: '#ffd84a', skill: '魔物を止める', sk: 'freeze', how: '技を押すと、まわりの魔物が2.5秒止まる（止まった魔物には触れても平気）。6秒に1回' },
+    { name: '黄の妖精', fac: 0, color: '#ffd84a', skill: '魔物がゆっくり', sk: 'none', how: 'まわりの魔物が、いつも少しゆっくり動く（0.65倍）' },
     { name: '桃色の妖精', fac: 0, color: '#ff9ccf', skill: 'はねる屍', sk: 'none', how: '桃色の妖精が作った屍は、はねる床になる。そこから跳ぶと高く上がる' },
     { name: '赤の妖精', fac: 1, color: '#ff6b5a', skill: '炎で死なない', sk: 'none', how: '壁から吹く炎、燃える枝に触れても平気' },
     { name: '茶の妖精', fac: 1, color: '#c08a52', skill: '広い屍', sk: 'none', how: '茶の妖精が作った屍は、足場が広い' },
-    { name: '灰の妖精', fac: 1, color: '#b8bcc4', skill: '足場を作る', sk: 'block', how: '技を押すと、その場に小さな足場を1つ作れる（1回の命で1つ）' },
+    { name: '灰の妖精', fac: 1, color: '#b8bcc4', skill: '命綱の足場', sk: 'none', how: '空中で翅が尽きたとき、1回の命で1度だけ、足もとに足場が出る' },
     { name: '黒の妖精', fac: 2, color: '#3a3f4a', skill: '罠が見える', sk: 'none', how: '見えない棘が、はっきり見える' },
     { name: '青の妖精', fac: 2, color: '#5ab0ff', skill: '水を泳ぐ', sk: 'none', how: '水の中を自由に泳げる。息も切れない' },
     { name: '紫の妖精', fac: 2, color: '#a77bff', skill: '闇が見える', sk: 'none', how: '暗い層でも、まわりがよく見える' },
@@ -55,6 +55,8 @@
   // 燃える枝：0.5〜0.85 の間燃える。0.4〜0.5 は知らせ
   const burnAt = (per, off, s) => { const f = (((s + off) % per) + per) % per / per; return { on: f >= .5 && f < .85, warn: f >= .4 && f < .5 }; };
   FT.burnAt = burnAt;
+  // 黄の妖精には、魔物がいつも少しゆっくり見える（動く）
+  FT.mothT = (sp, s) => sp === 1 ? s * .65 : s;
   const mothAt = (m, s) => ({ x: m[1] + (m[2] - m[1]) * tri(s / m[3] + m[4]), y: m[0] + dsin((s + m[4]) * 0.4934) * (m[5] === 1 ? .35 : .7) });
   FT.mothAt = mothAt;
   // ---------- 1回の挑戦 ----------
@@ -140,7 +142,11 @@
       if (p.y < 1.2) { this.clear = true; this.over = true; this.ev('clear'); return; }
       // ---------- 死ぬもの ----------
       const k = this.hazard(s); if (k) return this.die(k);
-      if (!p.on && p.gauge <= 0 && !swim) return this.die(wet ? 'drown' : 'wing');
+      if (!p.on && p.gauge <= 0 && !swim) {
+        // 灰の妖精：空中で翅が尽きたとき、1回の命で1度だけ、足もとに足場が出る
+        if (this.sp === 5 && !this.block && !wet) { this.block = { x: Math.max(2.1, Math.min(COLS - 2.1, p.x + PW / 2)), y: p.y + PH + .02 }; p.vy = 0; this.ev('block'); return; }
+        return this.die(wet ? 'drown' : 'wing');
+      }
     }
     skill() {
       const p = this.p, sk = FT.SP[this.sp].sk;
@@ -165,7 +171,7 @@
         if (p.on && p.onC < 0) for (const b of lv.br) if (b[3] && Math.abs(p.y + PH - b[0]) < .01 && p.x + PW > b[1] && p.x < b[2] && burnAt(b[3], b[4], s).on) return 'burn';
       }
       const mo = lv.mo || [];
-      for (let i = 0; i < mo.length; i++) { if (this.mothFrozen(i)) continue; const q = mothAt(mo[i], s); if (this.hit(q.x - .32, q.y - .27, .64, .54)) return mo[i][5] === 1 ? 'bee' : 'moth'; }
+      for (let i = 0; i < mo.length; i++) { if (this.mothFrozen(i)) continue; const q = mothAt(mo[i], FT.mothT(this.sp, s)); if (this.hit(q.x - .32, q.y - .27, .64, .54)) return mo[i][5] === 1 ? 'bee' : 'moth'; }
       for (const q of lv.tn || []) { const dx = p.x + PW / 2 - q[0], dy = p.y + PH / 2 - q[1]; if (dx * dx + dy * dy < .36) return 'thorn'; }
       // 実：一定の間隔で落ちる。枝や屍に当たると割れる
       const frs = lv.fr || [];

@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '7';
+  FT.VER = '15';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = FT.T, fmt = n => Number(n || 0).toLocaleString(FT.LOCALE || 'ja-JP');
@@ -510,8 +510,8 @@
     if (run.block) { const bk = run.block; ART.spr(b, 'stone', X(bk.x - 1.1), Y(bk.y) - 3, false, Math.round(2.2 * PXs), 12); }
     // ---- 蛾・蜂 ----
     (lv.mo || []).forEach((m, i) => {
-      const fz = run.mothFrozen(i), q = fz ? { x: fz.x, y: fz.y } : FT.mothAt(m, s); if (!vis(q.y)) return;
-      if (m[5] === 1) { const q2 = FT.mothAt(m, s + .02); ART.bee(b, X(q.x), Y(q.y), s, !!fz, m[4], q2.x >= q.x ? -1 : 1); }
+      const fz = run.mothFrozen(i), ms = FT.mothT(run.sp, s), q = fz ? { x: fz.x, y: fz.y } : FT.mothAt(m, ms); if (!vis(q.y)) return;
+      if (m[5] === 1) { const q2 = FT.mothAt(m, ms + .02); ART.bee(b, X(q.x), Y(q.y), s, !!fz, m[4], q2.x >= q.x ? -1 : 1); }
       else { ART.moth(b, X(q.x), Y(q.y), s, !!fz, m[4]); lights.push([q.x, q.y, 1, [170, 120, 230], .35]); }
     });
     // ---- 実 ----
