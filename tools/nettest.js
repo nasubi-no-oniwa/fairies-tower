@@ -142,6 +142,25 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
     denied = false; try { await NE.update({ ['ft_help/1/' + k0]: 3 }); } catch (e) { denied = true; } ok(denied, '回数の印（ft_u/c）なしでは増やせない');
     const m = await NE.helpOf([{ a: 'g', f: 1, k: k0 }, { a: 'g', f: 1, k: 99999 }]); ok(m.get('g:1:' + k0) === 2 && m.get('g:1:99999') === 0, '自分の屍の数を読める');
   }
+  console.log('7e) 掲示板（陣営・広場）');
+  {
+    const P = client('P'), NP = P.FT.NET, Q = client('Q'), NQ = Q.FT.NET; NP.fac = 'r'; NQ.fac = 'r';
+    const id1 = await NP.boardPost('fac', { n: 'ぴー', m: 'こんにちは', s: 3, l: 'ja', f: 5 });
+    let ok1 = true; try { await NP.boardPost('fac', { n: 'ぴー', m: 'つづけて', s: 3, l: 'ja', f: 5 }); ok1 = false; } catch (e) { }
+    ok(ok1, '20秒たたないと、続けて書けない');
+    const rb = await get('ft_board', 'r'); ok(rb && rb[id1] && rb[id1].m === 'こんにちは' && !(await get('ft_board', 'g')), '陣営の掲示板は、その陣営のデータベースだけに入る');
+    const id2 = await NQ.boardPost('all', { n: 'きゅー', m: 'Hello world', s: 4, l: 'en', f: 2 });
+    const gb = await get('ft_gboard', 'g'); ok(gb && gb[id2] && gb[id2].a === 'r', '広場は緑のデータベースに入り、陣営の印がつく');
+    let bad = true; try { await NQ.update({ ['ft_u/' + NQ.uid('r') + '/p']: { '.sv': 'timestamp' }, ['ft_board/zzzzzzzzzz1']: { n: 'x', m: 'y'.repeat(200), t: { '.sv': 'timestamp' }, u: NQ.uid('r'), s: 1, l: 'ja', f: 1 } }, 'r'); bad = false; } catch (e) { }
+    ok(bad, '長すぎる文は書けない');
+    let bad2 = true; try { await NQ.update({ ['ft_board/' + id1 + '/m']: 'かきかえ' }, 'r'); bad2 = false; } catch (e) { }
+    ok(bad2, '人の書きこみは書きかえられない');
+    await NQ.boardReport('fac', id1); let dup = true; try { await NQ.boardReport('fac', id1); dup = false; } catch (e) { } const rb2 = await get('ft_board', 'r');
+    ok(rb2[id1].r === 1 && dup, '通報は1人1回だけ数える');
+    const list = await NP.boardRead('fac'); ok(list.length === 1 && list[0].id === id1, '掲示板を読める');
+    const W2 = client('W2'); await W2.FT.NET.adminLogin('KEY', 'r'); await W2.FT.NET.boardDel('fac', id1, 'r'); const rb3 = await get('ft_board', 'r'); ok(!rb3 || !rb3[id1], '管理人は書きこみを消せる');
+    let np = true; try { await NQ.boardDel('fac', id2, 'g'); np = false; } catch (e) { } ok(np, 'ふつうの人は消せない');
+  }
   console.log('8) 管理：終わりの印を入れると、書きこめなくなる'); await A2.setEnd('g', 'g');
   await sleep(800); denied = false;
   try { const g = A2.pid(); await A2.update({ ['ft_u/' + A2.uid() + '/c']: { '.sv': 'timestamp' }, ['ft_stat/1/d']: { '.sv': { increment: 1 } } }); } catch (e) { denied = true; }

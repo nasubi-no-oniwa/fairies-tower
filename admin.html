@@ -50,16 +50,23 @@ th { color: var(--dim); font-weight: 400; }
     <p class="note">「確認済み」にした層までは、端末が越えた記録を確かめずに開きます（確かめが重いときに使います）。</p>
   </section>
   <section>
-    <h2>4. 終わり</h2>
+    <h2>4. 掲示板</h2>
+    <p class="note">「陣営」は上でえらんだ陣営の掲示板、「広場」は全体の掲示板（緑の同盟のデータベースにあります。広場を直すときは緑の同盟に入ってください）。通報が3つ以上の投稿は、ゲームでは見えなくなっています。</p>
+    <div class="row"><select id="bdK"><option value="fac">陣営の掲示板</option><option value="all">広場（全体）</option></select><button id="bdLoad">読みこむ</button></div>
+    <div class="row"><input id="bdPinIn" placeholder="お知らせ（上にずっと出る。空にすると消える）" maxlength="300"><button id="bdPinSet">お知らせを入れる</button></div>
+    <div class="wide"><table id="bdT"></table></div>
+  </section>
+  <section>
+    <h2>5. 終わり</h2>
     <p class="note">頂上にたどり着いた陣営を確かめてから押してください。3つのデータベースすべてに「終わり」の印を入れます（入れると、だれも書きこめなくなります）。3つの陣営すべてに入っておく必要があります。</p>
     <div class="row"><select id="win"><option value="g">緑の同盟の勝ち</option><option value="r">赤の軍勢の勝ち</option><option value="b">青の連合の勝ち</option></select><button class="warn" id="endSet">ゲームを終える</button></div>
   </section>
   <section><h2>記録</h2><div id="log"></div></section>
 </main>
-<script src="js/config.js?v=8"></script>
-<script src="js/engine.js?v=8"></script>
-<script src="js/verify.js?v=8"></script>
-<script src="js/net.js?v=8"></script>
+<script>
+// 管理画面は、毎回いちばん新しい計算を読む（古いものが残っていると、本物を「にせ」と判定してしまうため）
+(function () { const v = Date.now(); for (const f of ['config', 'engine', 'verify', 'net']) document.write('<script src="js/' + f + '.js?v=' + v + '"><\/script>'); })();
+</script>
 <script>
 (function () {
   const FT = window.FT, N = FT.NET, V = FT.V, $ = id => document.getElementById(id);
@@ -110,6 +117,20 @@ th { color: var(--dim); font-weight: 400; }
   $('flReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の屍を、ぜんぶ消しますか？（もとに戻せません）`)) return; try { await N.resetFloor(fl, f); log(`第${fl}層の屍を消しました`); } catch (e) { log('消せませんでした'); } };
   $('stReset').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層の、死んだ数・越えた数・一番上まで行った割合を0にしますか？（もとに戻せません）`)) return; try { await N.update({ ['ft_stat/' + fl]: null }, f); log(`第${fl}層の数を0にしました`); } catch (e) { log('消せませんでした（管理のかぎで入っていますか）'); } };
   $('ckSet').onclick = async () => { const f = fac(), fl = +$('fl').value; if (!confirm(`${NAMES[f]}の第${fl}層までを確認済みにしますか？`)) return; try { await N.setCkpt(fl, f); log(`第${fl}層までを確認済みにしました`); } catch (e) { log('書きこめませんでした'); } };
+  // ---------- 掲示板 ----------
+  const bdF = () => $('bdK').value === 'all' ? 'g' : fac();
+  async function bdLoad() {
+    const k = $('bdK').value; N.fac = fac();
+    try {
+      const v = await N.rest(k === 'all' ? 'ft_gboard' : 'ft_board', { orderBy: 't', limitToLast: 100 }, bdF());
+      const list = Object.entries(v || {}).map(([id, c]) => Object.assign({ id }, c)).sort((a, b) => b.t - a.t);
+      const pin = await N.rest(k === 'all' ? 'ft_gpin' : 'ft_pin', null, bdF()).catch(() => null); $('bdPinIn').value = pin || '';
+      $('bdT').innerHTML = '<tr><th>時刻</th><th>名前</th><th>文</th><th>通報</th><th></th></tr>' + list.map(c => `<tr><td>${new Date(c.t).toLocaleString('ja-JP')}</td><td>${esc(c.n)}${c.a ? '（' + NAMES[c.a] + '）' : ''}<br><small class="note">${esc(c.u).slice(0, 10)}</small></td><td>${esc(c.m)}${FT.BOARD_CHECK && FT.BOARD_CHECK(c.m) ? ' <span class="ng">（禁止語）</span>' : ''}</td><td class="${(c.r | 0) >= 3 ? 'ng' : ''}">${c.r | 0}</td><td><button class="warn" data-bd="${esc(c.id)}">消す</button></td></tr>`).join('');
+      for (const b of $('bdT').querySelectorAll('[data-bd]')) b.onclick = async () => { if (!confirm('この書きこみを消しますか？')) return; try { await N.boardDel(k, b.dataset.bd, bdF()); log('書きこみを消しました'); bdLoad(); } catch (e) { log('消せませんでした（その陣営に入っていますか）'); } };
+    } catch (e) { log('掲示板を読みこめませんでした'); }
+  }
+  $('bdLoad').onclick = bdLoad;
+  $('bdPinSet').onclick = async () => { try { await N.boardSetPin($('bdK').value, $('bdPinIn').value.trim(), bdF()); log('お知らせを入れました'); } catch (e) { log('入れられませんでした（その陣営に入っていますか）'); } };
   $('endSet').onclick = async () => {
     const w = $('win').value, fs = ['g', 'r', 'b'].filter(f => N.ready(f));
     const miss = fs.filter(f => !admins[f]); if (miss.length) { log('まだ入っていない陣営があります：' + miss.map(k => NAMES[k]).join('・')); return; }

@@ -121,6 +121,11 @@
   }
   UI.onPaint = function () {
     const me = $('meCard'), has = hasSp();
+    { const room = $('room'), tt = $('title'), dr = $('bBoard');
+      if (has) { const F = FT.FAC[FT.SP[UI.ME.sp].fac]; room.hidden = false; $('roomName').textContent = T('{0}の部屋', F.name); tt.dataset.fac = F.id; tt.style.setProperty('--rc', F.color); $('bBoardT').textContent = T('{0}の掲示板', F.name); dr.hidden = !!UI.OFFLINE; }
+      else { room.hidden = true; delete tt.dataset.fac; dr.hidden = true; }
+      $('bFacMove').textContent = facLeft() > 0 ? T('陣営を移る（あと{0}時間）', Math.ceil(facLeft() / 3600000)) : T('陣営を移る');
+      if (UI.boardBadge) UI.boardBadge(true); }
     me.classList.toggle('empty', !has);
     if (has) {
       const sp = FT.SP[UI.ME.sp], F = FT.FAC[sp.fac];
@@ -134,18 +139,53 @@
       me.querySelector('.meGo').textContent = T('えらぶ ›');
     }
   };
-  let pickFirst = false;
-  function openPick(first) {
+  let pickFirst = false, pickFac = 0;
+  const H12 = 12 * 3600 * 1000;
+  const facLeft = () => Math.max(0, (UI.ME.facAt || 0) + H12 - Date.now());
+  function openPick(first, fi) {
     pickFirst = !!first;
+    if (fi === undefined) fi = hasSp() ? FT.SP[UI.ME.sp].fac : 0;
+    $('facs').classList.add('one'); for (const f of document.querySelectorAll('#facs .fac')) f.hidden = +f.dataset.fac !== fi;
+    pickFac = fi;
     $('pkLead').textContent = first ? T('ようこそ。まず、あなたの妖精をえらぶ。妖精の色で入る陣営が決まり、陣営ごとにべつべつの世界樹を昇る。あとから変えられる。') : T('妖精の色で、入る陣営が決まる。陣営ごとに、べつべつの世界樹を昇る。いつでも変えられる。');
     $('pkClose').hidden = first && !hasSp();
+    { const F = FT.FAC[fi]; $('pkLead').textContent = T('{0}の妖精から、1人をえらぶ。', F.name) + ' ' + T('同じ陣営の中なら、いつでも変えられる。'); }
     paintPick();
     // 旗が順に出る演出をやりなおす
     for (const f of document.querySelectorAll('#facs .fac')) { f.style.animation = 'none'; void f.offsetWidth; f.style.animation = ''; }
     UI.modal('oPick', 1);
   }
-  function paintPick() { $('pkDone').disabled = !hasSp(); $('pkDone').textContent = hasSp() ? T('{0}で決める', FT.SP[UI.ME.sp].name) : T('妖精をえらんでください'); }
-  $('meCard').onclick = () => openPick(false);
+  function paintPick() { $('pkDone').disabled = !hasSp() || FT.SP[UI.ME.sp].fac !== pickFac; $('pkDone').textContent = hasSp() && FT.SP[UI.ME.sp].fac === pickFac ? T('{0}で決める', FT.SP[UI.ME.sp].name) : T('妖精をえらんでください'); }
+  $('meCard').onclick = () => { if (!hasSp()) openFac(true); else openPick(false); };
+  // ---------- 陣営えらび ----------
+  const MOTTO = [T('翅と芽吹き。長く飛び、魔物を止め、はねる屍で跳ぶ'), T('炎と大地。炎に強く、広い屍を作り、足場を生む'), T('水と闇。罠を見抜き、水を泳ぎ、闇を見通す')];
+  let facFirst = false;
+  function openFac(first) {
+    facFirst = !!first;
+    const box = $('fcards'); box.innerHTML = '';
+    const cur = hasSp() ? FT.SP[UI.ME.sp].fac : -1, left = facLeft();
+    $('fcClose').hidden = first && !hasSp();
+    FT.FAC.forEach((F, fi) => {
+      const b = document.createElement('button'); b.className = 'fcard' + (fi === cur ? ' cur' : '') + (cur >= 0 && fi !== cur && left > 0 ? ' lock' : '');
+      b.style.setProperty('--fc', F.color); b.style.setProperty('--d', fi * .1 + 's');
+      const top = Math.min(101, (UI.W.tops && UI.W.tops[N_FACS[fi]]) || 1);
+      b.innerHTML = `<span class="fx"></span><span><b>${esc(F.name)}</b><small>${esc(MOTTO[fi])}</small></span><span class="top">${top > 100 ? esc(T('頂')) : esc(T('第{0}層', top))}<span>${esc(T('最前線'))}</span></span>${fi === cur ? `<span class="tag">${esc(T('あなたの陣営'))}</span>` : ''}`;
+      const fx = b.querySelector('.fx'); FT.SP.forEach((sp, si) => { if (sp.fac !== fi) return; const c = document.createElement('canvas'); c.width = c.height = 16; c.dataset.sp = si; c.className = 'spc'; fx.appendChild(c); });
+      b.onclick = () => {
+        if (cur >= 0 && fi !== cur) {
+          const l = facLeft(); if (l > 0) { UI.toast(T('陣営を移れるのは、あと{0}時間{1}分後', Math.floor(l / 3600000), Math.ceil((l % 3600000) / 60000))); return; }
+          if (!confirm(T('{0}に移りますか？　移ると12時間は戻れません。', F.name))) return;
+        }
+        SND.se('flip'); UI.modal('oFac', 0); openPick(facFirst || fi !== cur, fi);
+      };
+      box.appendChild(b);
+    });
+    UI.modal('oFac', 1);
+  }
+  const N_FACS = FT.NET.FACS;
+  UI.openFac = openFac;
+  $('fcClose').onclick = () => UI.modal('oFac', 0);
+  $('bFacMove').onclick = () => openFac(false);
   $('pkClose').onclick = () => UI.modal('oPick', 0);
   $('pkDone').onclick = () => { UI.modal('oPick', 0); if (pickFirst) UI.toast(T('準備ができた'), T('「昇りはじめる」で世界樹へ'), 2200); };
   // カードを押したら裏返す（main.js の pickSp のあとで）
@@ -157,7 +197,10 @@
   $('bMore').onclick = () => UI.modal('oMore', 1);
   $('moClose').onclick = () => UI.modal('oMore', 0);
   $('oMore').addEventListener('click', e => { if (e.target.id === 'oMore') UI.modal('oMore', 0); });
-  for (const id of ['bShare', 'bCode']) $(id).addEventListener('click', () => UI.modal('oMore', 0));
+  for (const id of ['bShare', 'bCode', 'bHow']) $(id).addEventListener('click', () => UI.modal('oMore', 0));
+  $('bPlaza').onclick = () => UI.openBoard && UI.openBoard('all');
+  $('bBoard').onclick = () => UI.openBoard && UI.openBoard('fac');
+  $('psBoard').onclick = () => { UI.modal('oPause', 0); S.paused = true; UI.openBoard && UI.openBoard('fac'); };
   $('bSet').onclick = () => { UI.modal('oMore', 0); paintSet(); UI.modal('oSet', 1); };
   $('setClose').onclick = () => UI.modal('oSet', 0);
   S.lowQ = !!store('ft_lowq');
@@ -189,6 +232,64 @@
   addEventListener('keydown', e => { if (e.code === 'Escape' && $('oPause').classList.contains('on')) { e.preventDefault(); resume(); } });
   // 別のアプリへ移ったら止める
   document.addEventListener('visibilitychange', () => { if (document.hidden && $('game').classList.contains('on') && S.run && !S.run.over && !S.watch) UI.pause(); });
+
+  // =============================================
+  //  はじめての案内（第1層で、その場で短く教える）
+  //   1 飛ぶを押し続ける → 2 枝に降りると翅が戻る → 3 上の出口へ／翅が尽きると力尽きる → 4 死んだら：屍は足場になる → 5 屍につかまれる
+  // =============================================
+  const touch = !matchMedia('(hover: hover) and (pointer: fine)').matches;
+  let co = null;
+  function say(t, s) {
+    const el = $('coach'); el.hidden = false;
+    el.querySelector('.cT').textContent = t; el.querySelector('.cS').textContent = s || '';
+    const inn = el.querySelector('.cIn'); inn.style.animation = 'none'; void inn.offsetWidth; inn.style.animation = '';
+    SND.se('ui');
+  }
+  function coachEnd() { co = null; $('coach').hidden = true; $('bj').classList.remove('coachHi'); }
+  UI.coach = function () {
+    co = { st: 0, t0: performance.now(), fly: 0, dieSeen: S.dieAt || 0, lv: S.lv };
+    setTimeout(() => { if (!co) return; co.st = 1; say(touch ? T('「飛ぶ」を押し続けると、翅で飛べる') : T('スペースを押し続けると、翅で飛べる'), T('上へ昇ろう')); $('bj').classList.add('coachHi'); }, 1600);
+  };
+  setInterval(() => {
+    if (!co) return;
+    if (!S.lv || S.lv !== co.lv || !$('game').classList.contains('on')) { coachEnd(); return; }
+    const r = S.run, now = performance.now(); if (!r) return;
+    const p = r.p;
+    if (co.st === 1 && p.fly) { co.fly++; if (co.fly > 4) { co.st = 2; $('bj').classList.remove('coachHi'); say(T('翅は少しの間しかもたない'), T('枝に降りると、翅が元にもどる')); co.at = now; } }
+    else if (co.st === 2 && p.on && p.y < S.lv.h - 2 && now - co.at > 1200) { co.st = 3; say(T('いいぞ。いちばん上の出口をめざそう'), T('空中で翅が尽きると、その場で力尽きる')); co.at = now; }
+    else if (co.st === 3 && now - co.at > 6000) { $('coach').hidden = true; }
+    if (co.st >= 1 && co.st < 4 && S.dieAt && S.dieAt !== co.dieSeen) { co.dieSeen = S.dieAt; co.st = 4; co.at = now; setTimeout(() => { if (co && co.st === 4) say(T('倒れた妖精は、その場に屍として残る'), T('屍は、あとから来る仲間の足場になる')); }, 900); }
+    else if (co.st === 4 && now - co.at > 5200) { co.st = 5; co.at = now; say(T('屍には、飛ぶのをやめて近づけばつかまれる'), T('みんなの屍を足場に、上をめざそう')); }
+    else if (co.st === 5 && now - co.at > 5500) coachEnd();
+  }, 100);
+
+  // =============================================
+  //  死にざまを動画にする（死んだあと少しのあいだ、ボタンを出す）
+  // =============================================
+  let clipT = 0, clipBlob = null, clipUrl = '';
+  UI.clipOffer = function () {
+    if (!UI.canClip || !UI.canClip() || co) return;
+    const b = $('clipBtn'); b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+    clearTimeout(clipT); clipT = setTimeout(() => { b.hidden = true; }, 4500);
+  };
+  $('clipBtn').onclick = async () => {
+    $('clipBtn').hidden = true; clearTimeout(clipT);
+    $('clipNow').hidden = false;
+    let blob = null; try { blob = await UI.deathClip(); } catch (e) { blob = null; }
+    $('clipNow').hidden = true;
+    if (!blob || !blob.size) { UI.toast(T('動画を作れませんでした')); return; }
+    clipBlob = blob; if (clipUrl) URL.revokeObjectURL(clipUrl); clipUrl = URL.createObjectURL(blob);
+    $('clipVid').src = clipUrl;
+    const ext = /mp4/.test(blob.type) ? 'mp4' : 'webm';
+    const file = new File([blob], 'fairies-tower.' + ext, { type: blob.type });
+    $('clipShare').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+    $('clipShare').onclick = () => { navigator.share({ files: [file], text: T('この死にざまを見てくれ') + ' #FairiesTower ' + (FT_GAME() || '') }).catch(() => { }); };
+    $('clipSave').onclick = () => { const a = document.createElement('a'); a.href = clipUrl; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); };
+    $('clipX').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(T('この死にざまを見てくれ') + '\n' + (FT_GAME() || '') + '\n#FairiesTower'), '_blank', 'noopener'); };
+    S.paused = true; UI.modal('oClip', 1);
+  };
+  const FT_GAME = () => G.FT_GAME_URL || location.href.split(/[?#]/)[0];
+  $('clipClose').onclick = () => { UI.modal('oClip', 0); S.paused = false; $('clipVid').pause(); };
 
   // =============================================
   //  層の帯（入ったとき）
@@ -235,7 +336,7 @@
     // 越えたとき：光があふれる
     if (S.clearAt) {
       const k = (now - S.clearAt) / 1100;
-      if (k < 1.4) {
+      if (k >= 0 && k < 1.4) {
         const px = S.clearPos ? S.clearPos[0] * S_ : W / 2, py = S.clearPos ? (S.clearPos[1] - cam) * S_ : H * .3;
         g.globalCompositeOperation = 'lighter';
         const a = Math.max(0, 1 - k);
@@ -250,6 +351,17 @@
         g.globalCompositeOperation = 'source-over';
         if (k > .55) { g.fillStyle = `rgba(4,10,13,${Math.min(.5, (k - .55) * 1.2)})`; g.fillRect(0, 0, W, H); }
       }
+    }
+    // 動画を撮っている間：上に層の名前、下にゲームの名前
+    if (S.clip) {
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      const band = (y, h) => { const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, y === 0 ? 'rgba(0,0,0,.7)' : 'rgba(0,0,0,0)'); gr.addColorStop(1, y === 0 ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,.75)'); g.fillStyle = gr; g.fillRect(0, y, W, h); };
+      band(0, 72 * dpr); band(H - 64 * dpr, 64 * dpr);
+      g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = '#ffe9a8';
+      g.font = `700 ${13 * dpr}px "Zen Kaku Gothic New", sans-serif`; g.fillText(T('第{0}層', S.clip.f) + '　' + (S.lv ? S.lv.name : ''), W / 2, 30 * dpr);
+      g.fillStyle = '#e9f3ef'; g.font = `700 ${15 * dpr}px "Zen Kaku Gothic New", sans-serif`; g.fillText(S.clip.died ? S.clip.sub : S.clip.name, W / 2, 54 * dpr);
+      g.font = `700 ${20 * dpr}px "Kaisei Decol", serif`; g.fillStyle = 'rgba(255,251,230,.92)'; g.shadowColor = 'rgba(255,233,168,.6)'; g.shadowBlur = 10 * dpr; g.fillText("Fairies' Tower", W / 2, H - 28 * dpr); g.shadowBlur = 0;
+      g.font = `700 ${10 * dpr}px "Zen Kaku Gothic New", sans-serif`; g.fillStyle = 'rgba(185,205,198,.9)'; g.fillText(T('世界樹を、屍で昇れ') + '  #FairiesTower', W / 2, H - 12 * dpr);
     }
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
   };
@@ -267,7 +379,7 @@
       if (!splashOn) return; splashOn = false;
       SND.unlock(); SND.se('start'); store('ft_seen', 1);
       splash.classList.add('out'); setTimeout(() => splash.remove(), 800);
-      if (!hasSp()) setTimeout(() => openPick(true), 500);
+      if (!hasSp()) setTimeout(() => openFac(true), 500);
     };
     splash.addEventListener('pointerup', go);
     addEventListener('keydown', e => { if (splashOn && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); go(); } });
@@ -286,6 +398,7 @@
     drawTitleBG(now);
     const t = now / 1000;
     if (hasSp()) drawSp($('meSp'), UI.ME.sp, t, true); else { const c = $('meSp').getContext('2d'); c.clearRect(0, 0, 16, 16); ART.fairy(c, Math.floor(t / 1.2) % 9, 8, 15, 1, 'fly', (Math.sin(t * 9) + 1) / 2, .5); }
+    if ($('oFac').classList.contains('on')) for (const cv of document.querySelectorAll('#fcards .spc')) drawSp(cv, +cv.dataset.sp, t + +cv.dataset.sp * .3);
     if ($('oPick').classList.contains('on')) for (const cv of document.querySelectorAll('#facs .spc')) drawSp(cv, +cv.dataset.sp, t + +cv.dataset.sp * .3);
   }
   addEventListener('resize', () => { tW = 0; });

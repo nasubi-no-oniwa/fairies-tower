@@ -16,6 +16,7 @@ const rules = {
         '.read': false,
         c: { '.write': `${OPEN} && auth != null && auth.uid === $uid && newData.exists()`, '.validate': "newData.isNumber() && newData.val() === now && (!data.exists() || now - data.val() >= 700)" },
         k: { '.write': `${OPEN} && auth != null && auth.uid === $uid && newData.exists()`, '.validate': "newData.isNumber() && newData.val() === now && (!data.exists() || now - data.val() >= 4000)" },
+        p: { '.write': `${OPEN} && auth != null && auth.uid === $uid && newData.exists()`, '.validate': "newData.isNumber() && newData.val() === now && (!data.exists() || now - data.val() >= 19000)" },
         w: { '.read': "auth != null && auth.uid === $uid", $f: { '.write': `${OPEN} && auth != null && auth.uid === $uid && newData.exists()`, '.validate': `${F} && newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1) && newData.val() <= 3` } },
         $other: { '.validate': false },
       },
@@ -105,6 +106,30 @@ const rules = {
         $k: { '.write': `(${OPEN} && auth != null && newData.exists() && (${R("'ft_u/' + auth.uid + '/c'")}.val() === now || ${R("'ft_u/' + auth.uid + '/k'")}.val() === now)) || ${ADMIN}`, '.validate': "$k.matches(/^[0-9]{1,6}$/) && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1" },
       },
     },
+    // 掲示板：陣営の掲示板（ft_board）と、全体の掲示板（ft_gboard。緑のデータベースに置く）。1人20秒に1回まで（ft_u の p）
+    ft_board: {
+      '.read': true, '.indexOn': ['t'],
+      $id: {
+        '.write': `(${OPEN} && auth != null && !data.exists() && newData.exists() && newData.child('u').val() === auth.uid && newData.child('t').val() === now && ${R2("'ft_u/' + auth.uid + '/p'")}.val() === now) || (!newData.exists() && ${ADMIN})`,
+        '.validate': "$id.matches(/^[A-Za-z0-9_-]{8,30}$/) && newData.hasChildren(['n', 'm', 't', 'u', 's', 'l', 'f']) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 12 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 120 && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 8 && newData.child('l').isString() && newData.child('l').val().matches(/^(ja|en|zh|ko)$/) && newData.child('f').isNumber() && newData.child('f').val() >= 0 && newData.child('f').val() <= 101 && newData.child('u').isString() && newData.child('t').isNumber()",
+        n: { '.validate': true }, m: { '.validate': true }, t: { '.validate': true }, u: { '.validate': true }, s: { '.validate': true }, l: { '.validate': true }, f: { '.validate': true }, r: { '.write': `auth != null && ${R("'ft_board_r/' + $id + '/' + auth.uid")}.val() === true && !root.child('ft_board_r/' + $id + '/' + auth.uid).exists()`, '.validate': "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1" }, a: { '.validate': "newData.isString() && newData.val().matches(/^(g|r|b)$/)" },
+        $other: { '.validate': false },
+      },
+    },
+    ft_gboard: {
+      '.read': true, '.indexOn': ['t'],
+      $id: {
+        '.write': `(${OPEN} && auth != null && !data.exists() && newData.exists() && newData.child('u').val() === auth.uid && newData.child('t').val() === now && ${R2("'ft_u/' + auth.uid + '/p'")}.val() === now) || (!newData.exists() && ${ADMIN})`,
+        '.validate': "$id.matches(/^[A-Za-z0-9_-]{8,30}$/) && newData.hasChildren(['n', 'm', 't', 'u', 's', 'l', 'f']) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 12 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 120 && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 8 && newData.child('l').isString() && newData.child('l').val().matches(/^(ja|en|zh|ko)$/) && newData.child('f').isNumber() && newData.child('f').val() >= 0 && newData.child('f').val() <= 101 && newData.child('u').isString() && newData.child('t').isNumber()",
+        n: { '.validate': true }, m: { '.validate': true }, t: { '.validate': true }, u: { '.validate': true }, s: { '.validate': true }, l: { '.validate': true }, f: { '.validate': true }, r: { '.write': `auth != null && ${R("'ft_gboard_r/' + $id + '/' + auth.uid")}.val() === true && !root.child('ft_gboard_r/' + $id + '/' + auth.uid).exists()`, '.validate': "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1" }, a: { '.validate': "newData.isString() && newData.val().matches(/^(g|r|b)$/)" },
+        $other: { '.validate': false },
+      },
+    },
+    // 通報：1人1回ずつ。3人に通報された投稿は、端末で見せない
+    ft_board_r: { $id: { $uid: { '.write': "auth != null && auth.uid === $uid && !data.exists() && newData.val() === true" } } },
+    ft_gboard_r: { $id: { $uid: { '.write': "auth != null && auth.uid === $uid && !data.exists() && newData.val() === true" } } },
+    ft_pin: { '.read': true, '.write': ADMIN, '.validate': "newData.isString() && newData.val().length <= 300" },
+    ft_gpin: { '.read': true, '.write': ADMIN, '.validate': "newData.isString() && newData.val().length <= 300" },
     ft_ckpt: { '.read': true, '.write': ADMIN, '.validate': "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
   },
 };

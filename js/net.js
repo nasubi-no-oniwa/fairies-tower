@@ -12,6 +12,8 @@
 //   ft_u/{匿名ID}          : { c：最後に死んだ時刻, k：最後に越えた時刻, w/{層}：越えた記録の数（3まで） }
 //   ft_rm/{層}・ft_reset/{層} : { t }   管理人が屍を取り除いた・層を消した時刻
 //   ft_help/{層}/{場所}   : その屍が、あとから来た人の足場になった数（1回の挑戦で1つの屍につき1）
+//   ft_board/{番号}       : 陣営の掲示板 { n：名前, m：文, t, u, s：種族, l：言葉, f：いちばん高く昇った層 }   ft_pin：管理人のお知らせ
+//   ft_gboard/{番号}      : 全体の掲示板（緑のデータベースに置く。a：陣営）   ft_gpin：全体のお知らせ
 //   ft_ckpt               : 管理人が「ここまでは本物」と確かめた層
 //   ft_admin/key・ft_admins/{匿名ID} : 管理のかぎ
 //
@@ -211,7 +213,9 @@
     if (N.ready() && !N.frozen) {
       try { const v = await rest('ft_cells/' + lv.f, { orderBy: 't', startAt: F.maxT + 1 }); for (const k in v || {}) { if (!v[k]) continue; F.raw[k] = v[k]; if (v[k].t > F.maxT) F.maxT = v[k].t; } } catch (e) { }
     }
-    const m = await N.trust(lv, 4000);
+    // 遊んでいる間は、新しい屍の「場所」だけ見せる（再生しての確かめは、層に入るときと GitHub のまとめで行う。通信を大きく減らすため）
+    const m = V.shown(F.st, F.raw, F.rest);
+    for (const k in F.raw) { const c = F.raw[k]; if (c && !m.has(+k) && c.t > (F.st.t || 0) - 1) m.set(+k, { n: Math.min(5, c.n | 0 || 1), s: c.s | 0, name: String(c.l || '名無し').slice(0, 12), t: c.t || 0, nAll: c.n | 0 }); }
     for (const [k, c] of mine || []) if (!m.has(k)) m.set(k, c);   // 自分の屍で、まだ届いていないもの
     return m;
   };
@@ -334,6 +338,30 @@
     await Promise.all(list.filter(o => N.ready(o.a)).map(o => rest('ft_help/' + o.f + '/' + o.k, null, o.a).then(v => { out.set(o.a + ':' + o.f + ':' + o.k, typeof v === 'number' ? v : 0); }).catch(() => { })));
     return out;
   };
+  // ---------- 掲示板 ----------
+  //  kind：'fac'（自分の陣営）・'all'（全体。緑のデータベース）
+  const BDB = kind => kind === 'all' ? 'g' : N.fac, BPATH = kind => kind === 'all' ? 'ft_gboard' : 'ft_board', BPIN = kind => kind === 'all' ? 'ft_gpin' : 'ft_pin';
+  N.boardReady = kind => N.ready(BDB(kind));
+  N.boardRead = async function (kind, since) {
+    const v = since ? await rest(BPATH(kind), { orderBy: 't', startAt: since + 1, limitToFirst: 60 }, BDB(kind)) : await rest(BPATH(kind), { orderBy: 't', limitToLast: 40 }, BDB(kind));
+    return Object.entries(v || {}).map(([id, c]) => Object.assign({ id }, c)).filter(c => c && typeof c.m === 'string' && typeof c.t === 'number').sort((a, b) => a.t - b.t);
+  };
+  N.boardPin = kind => rest(BPIN(kind), null, BDB(kind)).catch(() => null);
+  N.boardLast = kind => rest(BPATH(kind), { orderBy: 't', limitToLast: 1 }, BDB(kind)).then(v => { let t = 0; for (const k in v || {}) if (v[k] && v[k].t > t) t = v[k].t; return t; }).catch(() => 0);
+  N.boardPost = async function (kind, o) {   // o：{ n, m, s, l, f }
+    const F = BDB(kind); await N.token(false, F); const uid = N.uid(F), id = pid();
+    const post = { n: N.cleanName(o.n) || '名無し', m: String(o.m).slice(0, 120), t: SV, u: uid, s: o.s | 0, l: o.l, f: Math.max(0, Math.min(101, o.f | 0)) };
+    if (kind === 'all') post.a = N.fac;
+    await update({ ['ft_u/' + uid + '/p']: SV, [BPATH(kind) + '/' + id]: post }, F);
+    return id;
+  };
+  N.boardReport = async function (kind, id) {
+    const F = BDB(kind); await N.token(false, F); const uid = N.uid(F);
+    await update({ [BPATH(kind) + '_r/' + id + '/' + uid]: true, [BPATH(kind) + '/' + id + '/r']: INC() }, F);
+  };
+  N.boardDel = (kind, id, F) => update({ [BPATH(kind) + '/' + id]: null }, F || BDB(kind));
+  N.boardSetPin = (kind, text, F) => restWrite('PUT', BPIN(kind), String(text || ''), F || BDB(kind));
+  N.boardUid = kind => N.uid(BDB(kind));
   N.setCkpt = (f, F) => restWrite('PUT', 'ft_ckpt', f, F);
   N.setEnd = (w, F) => restWrite('PUT', 'ft_end', { t: SV, w }, F);
   N.dlog = async function (f, F) {

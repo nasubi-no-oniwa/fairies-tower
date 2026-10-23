@@ -23,6 +23,10 @@
           ".write": "!root.child('ft_end').exists() && auth != null && auth.uid === $uid && newData.exists()",
           ".validate": "newData.isNumber() && newData.val() === now && (!data.exists() || now - data.val() >= 4000)"
         },
+        "p": {
+          ".write": "!root.child('ft_end').exists() && auth != null && auth.uid === $uid && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === now && (!data.exists() || now - data.val() >= 19000)"
+        },
         "w": {
           ".read": "auth != null && auth.uid === $uid",
           "$f": {
@@ -261,6 +265,112 @@
           ".validate": "$k.matches(/^[0-9]{1,6}$/) && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
         }
       }
+    },
+    "ft_board": {
+      ".read": true,
+      ".indexOn": [
+        "t"
+      ],
+      "$id": {
+        ".write": "(!root.child('ft_end').exists() && auth != null && !data.exists() && newData.exists() && newData.child('u').val() === auth.uid && newData.child('t').val() === now && newData.parent().parent().child('ft_u/' + auth.uid + '/p').val() === now) || (!newData.exists() && (auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val()))",
+        ".validate": "$id.matches(/^[A-Za-z0-9_-]{8,30}$/) && newData.hasChildren(['n', 'm', 't', 'u', 's', 'l', 'f']) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 12 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 120 && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 8 && newData.child('l').isString() && newData.child('l').val().matches(/^(ja|en|zh|ko)$/) && newData.child('f').isNumber() && newData.child('f').val() >= 0 && newData.child('f').val() <= 101 && newData.child('u').isString() && newData.child('t').isNumber()",
+        "n": {
+          ".validate": true
+        },
+        "m": {
+          ".validate": true
+        },
+        "t": {
+          ".validate": true
+        },
+        "u": {
+          ".validate": true
+        },
+        "s": {
+          ".validate": true
+        },
+        "l": {
+          ".validate": true
+        },
+        "f": {
+          ".validate": true
+        },
+        "r": {
+          ".write": "auth != null && newData.parent().parent().parent().child('ft_board_r/' + $id + '/' + auth.uid).val() === true && !root.child('ft_board_r/' + $id + '/' + auth.uid).exists()",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+        },
+        "a": {
+          ".validate": "newData.isString() && newData.val().matches(/^(g|r|b)$/)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "ft_gboard": {
+      ".read": true,
+      ".indexOn": [
+        "t"
+      ],
+      "$id": {
+        ".write": "(!root.child('ft_end').exists() && auth != null && !data.exists() && newData.exists() && newData.child('u').val() === auth.uid && newData.child('t').val() === now && newData.parent().parent().child('ft_u/' + auth.uid + '/p').val() === now) || (!newData.exists() && (auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val()))",
+        ".validate": "$id.matches(/^[A-Za-z0-9_-]{8,30}$/) && newData.hasChildren(['n', 'm', 't', 'u', 's', 'l', 'f']) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 12 && newData.child('m').isString() && newData.child('m').val().length >= 1 && newData.child('m').val().length <= 120 && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 8 && newData.child('l').isString() && newData.child('l').val().matches(/^(ja|en|zh|ko)$/) && newData.child('f').isNumber() && newData.child('f').val() >= 0 && newData.child('f').val() <= 101 && newData.child('u').isString() && newData.child('t').isNumber()",
+        "n": {
+          ".validate": true
+        },
+        "m": {
+          ".validate": true
+        },
+        "t": {
+          ".validate": true
+        },
+        "u": {
+          ".validate": true
+        },
+        "s": {
+          ".validate": true
+        },
+        "l": {
+          ".validate": true
+        },
+        "f": {
+          ".validate": true
+        },
+        "r": {
+          ".write": "auth != null && newData.parent().parent().parent().child('ft_gboard_r/' + $id + '/' + auth.uid).val() === true && !root.child('ft_gboard_r/' + $id + '/' + auth.uid).exists()",
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+        },
+        "a": {
+          ".validate": "newData.isString() && newData.val().matches(/^(g|r|b)$/)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "ft_board_r": {
+      "$id": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.val() === true"
+        }
+      }
+    },
+    "ft_gboard_r": {
+      "$id": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.val() === true"
+        }
+      }
+    },
+    "ft_pin": {
+      ".read": true,
+      ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
+      ".validate": "newData.isString() && newData.val().length <= 300"
+    },
+    "ft_gpin": {
+      ".read": true,
+      ".write": "(auth != null && root.child('ft_admin/key').exists() && root.child('ft_admins/' + auth.uid).val() === root.child('ft_admin/key').val())",
+      ".validate": "newData.isString() && newData.val().length <= 300"
     },
     "ft_ckpt": {
       ".read": true,

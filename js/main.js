@@ -100,7 +100,7 @@
     const box = $('facs'); box.innerHTML = '';
     FT.FAC.forEach((F, fi) => {
       const col = document.createElement('div'); col.className = 'fac'; col.style.color = F.color;
-      col.style.setProperty('--d', fi * .12 + 's'); col.style.setProperty('--fc', F.color);
+      col.dataset.fac = fi; col.style.setProperty('--d', fi * .12 + 's'); col.style.setProperty('--fc', F.color);
       col.innerHTML = `<h3><span class="emb"></span>${esc(F.name)}</h3>`;
       FT.SP.forEach((sp, si) => {
         if (sp.fac !== fi) return;
@@ -116,7 +116,7 @@
   function pickSp(si) {
     SND.unlock(); SND.se('tap');
     const before = ME.sp === null || ME.sp === undefined ? null : fidOf(ME.sp);
-    ME.sp = si; saveMe(); N.fac = fidOf(si);
+    ME.sp = si; if (before !== null && before !== fidOf(si)) ME.facAt = Date.now(); saveMe(); N.fac = fidOf(si);
     title.paint();
     if (before !== N.fac) { W.open = {}; W.stat = {}; W.okSnap = {}; W.ckpt = null; W.loaded = false; refresh(true); }
   }
@@ -222,9 +222,8 @@
     spawn(true);
     S.enterAt = performance.now();
     const thTxt = lv.th && lv.th.length && lv.f > 5 ? T('{0}が得意な層', lv.th.map(t => FT.SP[t].name).join(T('・'))) : '';
-    if (!ME.tut) { ME.tut = 1; saveMe(); openHow(); }
-    else if (FT.UI.banner) FT.UI.banner(f, lv.name, thTxt);
-    else if (thTxt) toast(`${T('第{0}層', f)}　${lv.name}`, thTxt, 2400);
+    if (FT.UI.banner) FT.UI.banner(f, lv.name, thTxt); else if (thTxt) toast(`${T('第{0}層', f)}　${lv.name}`, thTxt, 2400);
+    if (!ME.tut) { ME.tut = 1; saveMe(); if (FT.UI.coach) FT.UI.coach(); else openHow(); }
   }
   function spawn(first) {
     S.used = new Set();
@@ -339,7 +338,9 @@
       if (Date.now() - S.syncAt > 20000) { S.syncAt = Date.now(); const lvNow = lv; N.syncCells(lvNow, S.mine).then(mp => { if (mp && S.lv === lvNow) { for (const [k2, c2] of S.cor) if (c2.mine && !mp.has(k2)) mp.set(k2, c2); S.nextCor = mp; } }).catch(() => { }); }
     }
     updateHud();
-    setTimeout(() => { if (S.run === run && $('game').classList.contains('on')) spawn(false); }, 600);
+    S.lastDeath = { lv, cor: S.startCor, rec: S.rec.str(), opt: Object.assign({}, S.opt), t: run.t, name, sub: (KIND[run.dead] || T('{0}は力尽きた')).replace('{0}', name), at: Date.now() };
+    if (FT.UI.clipOffer) FT.UI.clipOffer();
+    setTimeout(() => { if (S.run === run && $('game').classList.contains('on') && !S.clip) spawn(false); }, 600);
   }
   let statT = 0;
   function refreshStat() { if (OFFLINE || Date.now() - statT < 120000) return; statT = Date.now(); N.floorStat(S.lv.f).then(v => { if (v) { W.stat[S.lv.f] = v; updateHud(); } }).catch(() => { }); }
@@ -706,12 +707,39 @@
     while (S.acc >= FT.DT) {
       S.acc -= FT.DT;
       if (S.run) { S.run.step(0); S.run.events.length = 0; if (S.run.p.y > lv.h + 400) S.run.p.y = lv.h + 200; }
-      if (R && !R.run.over) { R.run.step(R.inp(R.run.t + 1)); R.run.events.length = 0; if (R.run.over) toast(R.run.clear ? T('「{0}」 越えた！', R.name) : T('記録はここまで'), '', 2000); }
+      if (R && !R.run.over) { R.run.step(R.inp(R.run.t + 1)); R.run.events.length = 0; if (R.run.over && !S.clip) toast(R.run.clear ? T('「{0}」 越えた！', R.name) : T('記録はここまで'), '', 2000); }
     }
     if (R && S.follow && !R.run.over) S.cam += (Math.max(0, Math.min(lv.h - VH, R.run.p.y - VH * .55)) - S.cam) * Math.min(1, dt * 8);
     else { const sp = 18 * dt; if (S.keys.j || S.keys.up) S.cam -= sp; if (S.keys.dn) S.cam += sp; }
     S.cam = Math.max(0, Math.min(lv.h - VH, S.cam));
   }
+  // ---------- 死にざまを動画にする ----------
+  //  さっきの挑戦の最後の5秒を、同じ計算で再生しながら、画面をそのまま録画する（ほかの人には送らない）
+  function pickMime() { const M = typeof MediaRecorder !== 'undefined' ? MediaRecorder : null; if (!M || !cv.captureStream) return null; for (const t of ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) if (M.isTypeSupported(t)) return t; return null; }
+  (FT.UI = FT.UI || {}).canClip = () => !!pickMime();
+  async function deathClip() {
+    const d = S.lastDeath; if (!d || S.clip || S.watch || d.lv !== S.lv) return null;
+    const mime = pickMime(); if (!mime) { toast(T('この端末では動画を作れません')); return null; }
+    const keep = { run: S.run, acc: S.acc, cam: S.cam, fx: S.fx };
+    const r = new FT.Run(d.lv, FT.corParse(d.cor), d.opt), inp = FT.Rec.parse(d.rec), start = Math.max(0, d.t - 600);
+    while (r.t < start && !r.over) { r.step(inp(r.t + 1)); r.events.length = 0; }
+    S.clip = { name: d.name, sub: d.sub, f: d.lv.f, endT: d.t, died: 0 };
+    S.run = null; S.replay = { run: r, inp, name: d.name }; S.follow = true; S.watch = true; S.acc = 0; S.fx = []; S.dieAt = 0; S.clearAt = 0; S.enterAt = performance.now();
+    S.cam = Math.max(0, Math.min(d.lv.h - VH, r.p.y - VH * .55));
+    $('game').classList.add('clipping');
+    const stream = cv.captureStream(30), rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 }), chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const done = new Promise(res => { rec.onstop = res; });
+    rec.start(250);
+    await new Promise(res => { const t0 = performance.now(); const chk = () => { const R = S.replay; if (R && R.run.over && !S.clip.died) { S.clip.died = performance.now(); S.dieAt = S.clip.died; S.shake = .5; SND.se('die'); } if ((S.clip.died && performance.now() - S.clip.died > 1700) || performance.now() - t0 > 9000) res(); else setTimeout(chk, 50); }; chk(); });
+    rec.stop(); await done; stream.getTracks().forEach(t => t.stop());
+    // もとにもどす
+    S.watch = false; S.replay = null; S.follow = false; S.clip = null; S.dieAt = 0; S.fx = keep.fx; S.cam = keep.cam; S.acc = 0;
+    $('game').classList.remove('clipping');
+    S.run = keep.run; if (!S.run || S.run.over) spawn(false);
+    return new Blob(chunks, { type: mime.split(';')[0] });
+  }
+  (FT.UI = FT.UI || {}).deathClip = deathClip;
   async function watchReplay() {
     const f = S.lv.f, o = W.okSnap[f] || (ME.ok[N.fac] || {})[f] || W.open[f];
     if (!o || !o.id || OFFLINE) { toast(T('まだだれも、この層を越えていません')); return; }
@@ -781,5 +809,5 @@
   requestAnimationFrame(loop);
   // 3分ごとに全体を読みなおす（タイトルにいるときだけ）
   setInterval(() => { if ($('title').classList.contains('on') && !document.hidden) refresh(); }, 180000);
-  FT.UI = Object.assign(FT.UI || {}, { show, toast, startFloor, toTitle, W, ME, refresh, okFloor, S, modal, openHow, paint: () => title.paint(), paintSnd, getFloors, OFFLINE });
+  FT.UI = Object.assign(FT.UI || {}, { show, toast, startFloor, toTitle, W, ME, refresh, okFloor, S, modal, openHow, paint: () => title.paint(), paintSnd, getFloors, OFFLINE, newName, pickSp });
 })(window);
