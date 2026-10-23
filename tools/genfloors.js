@@ -22,11 +22,12 @@ const order = [];
 { const R = rng(20261021); for (let round = 0; round < 10; round++) { const a = [0, 1, 2, 3, 4, 5, 6, 7, 8]; for (let i = 8; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } order.push(...a.map(t => ({ t, round }))); } }
 // 第70層から上は、試しに昇る人（tools/bot.js）でちょうどよい難しさになる作り方（SALT）を選んである（tools/tunefloors.js）
 const SALT = { 70: 4, 71: 13, 72: 14, 73: 8, 74: 4, 75: 5, 76: 0, 77: 0, 78: 3, 79: 5, 80: 0, 81: 1, 82: 10, 83: 0, 84: 5, 85: 1, 86: 0, 87: 0, 88: 1, 89: 0, 90: 7, 91: 0, 92: 3, 93: 1, 94: 2, 95: 17, 96: 0, 97: 7, 98: 14, 99: 4, 100: 0 };
+const HARD_FROM = 101;   // この層から上を「長く・手ごわく」する（越えた層・挑戦中の層より上だけにすること）
 function gen(f, salt) {
-  if (salt === undefined) salt = SALT[f] || 0;
+  if (salt === undefined) salt = f >= HARD_FROM ? SALT[f] || 0 : 0;
   const R = rng(f * 7919 + 13 + salt * 100003), d = f / 100;
   // 第70層から上は「長く・手ごわく」（v16）。高さをのばし、仕掛けは高さに合わせて増やす。届かない所は作らない
-  const HK = f >= 70 ? (f - 69) / 31 : 0, HM = f >= 70 ? 1.2 + 0.25 * HK : 1, XM = f >= 70 ? HM * (1.05 + 0.15 * HK) : 1;
+  const HARD = f >= HARD_FROM, HK = HARD ? (f - 69) / 31 : 0, HM = HARD ? 1.2 + 0.25 * HK : 1, XM = HARD ? HM * (1.05 + 0.15 * HK) : 1;
   const h = Math.round((44 + f * 0.86) * HM);
   let themes = [], name;
   if (f <= 5) { name = BASE[f - 1]; }
@@ -39,7 +40,7 @@ function gen(f, salt) {
   lv.br.push([h - 1, 1, 19]);
   let y = h - 1, side = R() < .5 ? -1 : 1;
   let bigP = Math.max(0, Math.min(.75, (f - 8) / 60)) * (has(0) || has(5) ? 1.25 : 1);
-  if (f >= 70) bigP = Math.min(.9, bigP + .05 + .08 * HK);
+  if (HARD) bigP = Math.min(.9, bigP + .05 + .08 * HK);
   while (true) {
     let gap;
     if (R() < bigP) gap = 10 + R() * (2 + f * 0.1);
@@ -48,7 +49,7 @@ function gen(f, salt) {
     if (has(7)) gap = Math.min(gap, 8);   // 水の層：水のある所で高さをかせぐ
     const ny = y - gap;
     if (ny < 6.5) break;
-    let w = Math.max(2, 7.5 - d * 4.5 + R() * 2 - (f >= 70 ? .3 + .3 * HK : 0));
+    let w = Math.max(2, 7.5 - d * 4.5 + R() * 2 - (HARD ? .3 + .3 * HK : 0));
     if (has(4)) w = 1.2 + R() * 1.1;
     side = -side;
     const span = 18 - w; let x0 = 1 + (side < 0 ? R() * span * .55 : span * .45 + R() * span * .55);
