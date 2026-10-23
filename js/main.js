@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '15';
+  FT.VER = '16';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = FT.T, fmt = n => Number(n || 0).toLocaleString(FT.LOCALE || 'ja-JP');
@@ -802,7 +802,15 @@
   // =============================================
   //  タイトルへ
   // =============================================
-  function toTitle() { N.flush().catch(() => { }); S.run = null; S.lv = null; S.watch = false; S.replay = null; $('game').classList.remove('watching'); SND.bgm(null); show('title'); helpAt = 0; refresh(); }
+  // 新しい版が出ていたら、タイトルにもどったときに読みなおす（層の作りが変わると、古いままの記録は認められないため）
+  let verAt = 0, verNew = false;
+  function checkVer() {
+    if (verNew) return; if (Date.now() - verAt < 180000) return; verAt = Date.now();
+    fetch('data/ver.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.v && String(j.v) !== FT.VER) { verNew = true; if (!S.lv) N.flush().catch(() => { }).finally(() => location.reload()); } }).catch(() => { });
+  }
+  setInterval(checkVer, 60000); setTimeout(checkVer, 5000);
+  function toTitle() { if (verNew) { N.flush().catch(() => { }).finally(() => location.reload()); return; }
+    N.flush().catch(() => { }); S.run = null; S.lv = null; S.watch = false; S.replay = null; $('game').classList.remove('watching'); SND.bgm(null); show('title'); helpAt = 0; refresh(); }
   $('gBack').onclick = () => { if (FT.UI.pause && !S.watch) FT.UI.pause(); else toTitle(); };
   $('bGo').onclick = async () => { SND.unlock(); await getFloors(); startFloor(W.done ? 100 : W.latest); };
   // はじめる
