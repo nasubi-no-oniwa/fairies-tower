@@ -6,7 +6,7 @@
 // =============================================
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
-  FT.VER = '3';
+  FT.VER = '7';
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Number(n || 0).toLocaleString('ja-JP');
@@ -213,7 +213,7 @@
     $('hFloor').innerHTML = `第${f}層<small>${esc(lv.name)}</small>`;
     $('hFac').innerHTML = `<span style="color:${F.color}">${esc(F.name)}</span>・<span style="color:${sp.color === '#3a3f4a' ? '#9aa3b4' : sp.color}">${esc(sp.name)}</span>`;
     $('skName').textContent = sp.sk === 'none' ? '（いつも）' : sp.skill;
-    $('bSk').classList.toggle('off', sp.sk === 'none');
+    $('bSk').classList.toggle('off', sp.sk === 'none'); $('bSk').hidden = sp.sk === 'none';
     if (!ME.best[N.fac] || ME.best[N.fac] < f) { ME.best[N.fac] = f; saveMe(); }
     updateHud();
     SND.bgm(themeSong(lv));
@@ -257,7 +257,7 @@
         if (run.over) { if (run.clear) onClear(); else onDie(); break; }
       }
       // カメラ
-      const want = Math.max(0, Math.min(S.lv.h - VH, run.p.y - VH * .55));
+      const want = Math.max(0, Math.min(S.lv.h - VH, run.p.y - VH * .62));
       S.cam += (want - S.cam) * Math.min(1, dt * 8);
     }
     draw();
@@ -303,7 +303,7 @@
       if (Date.now() - S.syncAt > 20000) { S.syncAt = Date.now(); const lvNow = lv; N.syncCells(lvNow, S.mine).then(mp => { if (mp && S.lv === lvNow) { for (const [k2, c2] of S.cor) if (c2.mine && !mp.has(k2)) mp.set(k2, c2); S.nextCor = mp; } }).catch(() => { }); }
     }
     updateHud();
-    setTimeout(() => { if (S.run === run && $('game').classList.contains('on')) spawn(false); }, 1000);
+    setTimeout(() => { if (S.run === run && $('game').classList.contains('on')) spawn(false); }, 600);
   }
   let statT = 0;
   function refreshStat() { if (OFFLINE || Date.now() - statT < 120000) return; statT = Date.now(); N.floorStat(S.lv.f).then(v => { if (v) { W.stat[S.lv.f] = v; updateHud(); } }).catch(() => { }); }
@@ -466,7 +466,9 @@
       const pal = ART.spPal(FT.SP[sp]), pose = p.fly ? 'fly' : (!p.on && p.vy > 3 ? 'fall' : 'stand');
       const fl = p.fly ? .5 + .5 * Math.sin(ta * 34) : .25 + .2 * Math.sin(ta * 3);
       const fx = X(p.x + PW / 2), fy = Y(p.y + PH) + 1;
-      ART.fairy(b, sp, fx, fy, p.face || 1, pose, fl);
+      const low = !p.on && !run.over && p.gauge > 0 && p.gauge < .25 && !(p.wet && sp === 7);
+      ART.fairy(b, sp, fx, fy, p.face || 1, pose, fl, low && Math.floor(ta * 12) % 2 ? .45 : 1);
+      if (low) { lights.push([p.x + PW / 2, p.y + PH / 2, 1.6, [255, 110, 70], .6]); if (!S.watch && ta - (S.warnT || 0) > .22) { S.warnT = ta; SND.se('warn'); } }
       if (p.gauge < 1) { b.fillStyle = 'rgba(0,0,0,.6)'; b.fillRect(fx - 8, fy - 21, 16, 3); b.fillStyle = p.gauge > .25 ? (p.wet ? '#9fd4ff' : '#7fe3c9') : '#ff9a5c'; b.fillRect(fx - 7, fy - 20, Math.max(0, Math.round(14 * p.gauge)), 1); }
       lights.push([p.x + PW / 2, p.y + PH / 2, 3.6, pal.glow, 1]);
       if (p.fly && !S.paused && Math.random() < .5) S.fx.push({ x: p.x + PW / 2 - (p.face || 1) * .25, y: p.y + PH * .55, vx: (Math.random() - .5) * .8, vy: .6 + Math.random() * .6, life: .55, c: pal.glow, spark: 1 });

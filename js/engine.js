@@ -21,6 +21,7 @@
   const FLY_PUSH = 75, RISE_MAX = 7, FLY_TIME = 1.3, REFILL = 2.2;
   const PW = 0.7, PH = 0.9;
   const MERGE = 2.2;
+  const COYOTE = 12, JBUF = 14;   // 足場から落ちた直後も跳べる時間・着地の直前に押したジャンプを覚えておく時間（こま）
   FT.PHYS = { PW, PH, MERGE, FLY_TIME };
   // ---------- 陣営と種族 ----------
   FT.FAC = [
@@ -64,7 +65,7 @@
       this.lv = lv; this.cor = cor; this.sp = opt.sp | 0; this.b = Math.max(0, Math.min(10, opt.b | 0)); this.door = !!opt.door;
       this.ft = FLY_TIME * (this.sp === 0 ? 1.3 : 1) * (1 + 0.03 * this.b);
       this.t = 0; this.over = false; this.clear = false; this.dead = null; this.place = null;
-      this.p = { x: 10 - PW / 2, y: lv.h - 1 - PH, vx: 0, vy: 0, on: true, gauge: 1, face: 1, fly: false, jh: false, kh: false, lp: 0, top: lv.h - 1, onC: -1, wet: false };
+      this.p = { x: 10 - PW / 2, y: lv.h - 1 - PH, vx: 0, vy: 0, on: true, gauge: 1, face: 1, fly: false, jh: false, kh: false, lp: 0, coy: 0, jb: 0, top: lv.h - 1, onC: -1, wet: false };
       this.drops = []; this.dropLast = new Map();
       this.block = null; this.cool = 0; this.frz = new Map();   // 灰の足場・黄の技
       this.events = [];
@@ -93,7 +94,9 @@
       p.kh = !!K;
       if (this.cool > 0) this.cool--;
       // 跳ぶ（立っている所から）。桃色の妖精の屍からは高く跳ぶ
-      if (J && !p.jh && p.on) { const bounce = p.onC >= 0 && this.cl[p.onC] && this.cl[p.onC].s === 2; p.vy = -JUMP * (bounce ? 1.6 : 1); if (bounce) p.lp = 2; p.on = false; this.ev(bounce ? 'bounce' : 'jump'); }
+      if (J && !p.jh) p.jb = JBUF; else if (p.jb > 0) p.jb--;
+      if (p.on) p.coy = COYOTE; else if (p.coy > 0) p.coy--;
+      if (p.jb > 0 && (p.on || (p.coy > 0 && p.vy >= 0))) { p.jb = 0; p.coy = 0; const bounce = p.onC >= 0 && this.cl[p.onC] && this.cl[p.onC].s === 2; p.vy = -JUMP * (bounce ? 1.6 : 1); if (bounce) p.lp = 2; p.on = false; this.ev(bounce ? 'bounce' : 'jump'); }
       if (wet && !blue) {
         // 水の中：翅は使えない。押しているあいだ、ゆっくり泳いで上がる。息（ゲージ）が減る
         p.fly = false;
@@ -124,7 +127,8 @@
         const bk = this.block; if (!p.on && bk && feet0 <= bk.y + .001 && feet1 >= bk.y && p.x + PW > bk.x - 1.1 && p.x < bk.x + 1.1) { p.y = bk.y - PH; p.vy = 0; p.on = true; }
       }
       // つかまる：飛ぶのをやめて屍に近づくと、つかまって乗れる
-      if (!p.on && !p.fly && (p.vy > -2 || wet || p.lp === 1)) {
+      // 翅が尽きそうなときは、飛んでいても近くの屍につかまる
+      if (!p.on && ((!p.fly && (p.vy > -2 || wet || p.lp === 1)) || (p.fly && p.gauge < .15))) {
         const f1 = p.y + PH;
         for (let i = 0; i < this.cl.length; i++) { const c = this.cl[i]; if (p.x + PW > c.x - c.w / 2 && p.x < c.x + c.w / 2 && f1 > c.y - .7 && f1 < c.y + .5) { p.y = c.y - PH; p.vy = 0; p.on = true; p.onC = i; this.ev('grab', i); break; } }
         const bk = this.block; if (!p.on && bk && p.x + PW > bk.x - 1.1 && p.x < bk.x + 1.1 && f1 > bk.y - .7 && f1 < bk.y + .5) { p.y = bk.y - PH; p.vy = 0; p.on = true; }
@@ -151,18 +155,18 @@
         this.ev('block');
       }
     }
-    hit(x, y, w, h) { const p = this.p, m = .08; return p.x + PW - m > x && p.x + m < x + w && p.y + PH - m > y && p.y + m < y + h; }
+    hit(x, y, w, h) { const p = this.p, m = .12; return p.x + PW - m > x && p.x + m < x + w && p.y + PH - m > y && p.y + m < y + h; }
     // 当たると死ぬもの。赤の妖精は炎で死なない
     hazard(s) {
       const p = this.p, lv = this.lv, red = this.sp === 3;
-      for (const q of lv.sp || []) { const o = pokeOut(q[3], q[4], s); if (o.out > 0) { const len = q[2] * o.out, x = q[1] < 0 ? 1 : COLS - 1 - len; if (this.hit(x, q[0] - .25, len, .5)) return 'spear'; } }
+      for (const q of lv.sp || []) { const o = pokeOut(q[3], q[4], s); if (o.out > 0) { const len = q[2] * o.out, x = q[1] < 0 ? 1 : COLS - 1 - len; if (this.hit(x + (q[1] < 0 ? 0 : len * .1), q[0] - .19, len * .9, .38)) return 'spear'; } }
       if (!red) {
-        for (const q of lv.fj || []) { const o = pokeOut(q[3], q[4], s); if (o.out > 0) { const len = q[2] * o.out, x = q[1] < 0 ? 1 : COLS - 1 - len; if (this.hit(x, q[0] - .4, len, .8)) return 'fire'; } }
+        for (const q of lv.fj || []) { const o = pokeOut(q[3], q[4], s); if (o.out > 0) { const len = q[2] * o.out, x = q[1] < 0 ? 1 : COLS - 1 - len; if (this.hit(x + (q[1] < 0 ? 0 : len * .1), q[0] - .3, len * .9, .6)) return 'fire'; } }
         if (p.on && p.onC < 0) for (const b of lv.br) if (b[3] && Math.abs(p.y + PH - b[0]) < .01 && p.x + PW > b[1] && p.x < b[2] && burnAt(b[3], b[4], s).on) return 'burn';
       }
       const mo = lv.mo || [];
-      for (let i = 0; i < mo.length; i++) { if (this.mothFrozen(i)) continue; const q = mothAt(mo[i], s); if (this.hit(q.x - .42, q.y - .36, .84, .72)) return mo[i][5] === 1 ? 'bee' : 'moth'; }
-      for (const q of lv.tn || []) { const dx = p.x + PW / 2 - q[0], dy = p.y + PH / 2 - q[1]; if (dx * dx + dy * dy < .5) return 'thorn'; }
+      for (let i = 0; i < mo.length; i++) { if (this.mothFrozen(i)) continue; const q = mothAt(mo[i], s); if (this.hit(q.x - .32, q.y - .27, .64, .54)) return mo[i][5] === 1 ? 'bee' : 'moth'; }
+      for (const q of lv.tn || []) { const dx = p.x + PW / 2 - q[0], dy = p.y + PH / 2 - q[1]; if (dx * dx + dy * dy < .36) return 'thorn'; }
       // 実：一定の間隔で落ちる。枝や屍に当たると割れる
       const frs = lv.fr || [];
       for (let i = 0; i < frs.length; i++) {
@@ -174,7 +178,7 @@
         if (d.done) continue; const y0 = d.y; d.vy = Math.min(16, d.vy + 24 * DT); d.y += d.vy * DT;
         for (const b of lv.br) if (y0 <= b[0] && d.y >= b[0] && d.x + .4 > b[1] && d.x - .4 < b[2]) d.done = 1;
         if (!d.done) for (const c of this.cl) if (y0 <= c.y && d.y >= c.y && Math.abs(d.x - c.x) < c.w / 2 + .3) { d.done = 1; c.shield = this.t; break; }
-        if (!d.done && this.hit(d.x - .35, d.y - .35, .7, .7)) hitD = true;
+        if (!d.done && this.hit(d.x - .27, d.y - .27, .54, .54)) hitD = true;
       }
       if (this.drops.length > 40) this.drops = this.drops.filter(d => !d.done && d.y < lv.h + 2);
       if (hitD) return 'fruit';
