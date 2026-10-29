@@ -8,8 +8,8 @@
   const FT = G.FT;
   const LANGS = ['ja', 'en', 'zh', 'ko'];
   const pick = () => {
+    try { const q = new URLSearchParams(location.search).get('lang'); if (LANGS.includes(q)) { try { localStorage.setItem('ft_lang', q); } catch (e) { } return q; } } catch (e) { } // ?lang=xx が最優先（保存もする）
     try { const s = localStorage.getItem('ft_lang'); if (LANGS.includes(s)) return s; } catch (e) { }
-    const q = new URLSearchParams(location.search).get('lang'); if (LANGS.includes(q)) return q;
     const n = String((navigator.languages && navigator.languages[0]) || navigator.language || 'ja').toLowerCase();
     if (n.startsWith('ja')) return 'ja'; if (n.startsWith('zh')) return 'zh'; if (n.startsWith('ko')) return 'ko'; return 'en';
   };
