@@ -11,7 +11,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = FT.T, fmt = n => Number(n || 0).toLocaleString(FT.LOCALE || 'ja-JP');
   const GAME_URL = G.FT_GAME_URL || location.href.split(/[?#]/)[0];
-  const TAGS = T('#FairiesTower #gamedev #ゲーム制作');
+  const TAGS = '#FairiesTower'; // 遊んだ人の投稿には作品のハッシュタグだけ
   const OFFLINE = !N.FACS.some(f => N.ready(f));
   // ---------- 名前（毎回ちがう） ----------
   const PRE = ['うたう', 'ちいさな', 'あおい', 'ねむれる', 'ほしふる', 'さいごの', 'つきなき', 'あさやけの', 'ふるえる', 'みどりの', 'はじめての', 'ゆうぐれの', 'まよえる', 'しろい', 'かけだしの', 'ひとりの', 'わすれられた', 'こごえた', 'ねぼけた', 'まっすぐな', 'おくびょうな', 'むこうみずな', 'うつろな', 'とおくの'];

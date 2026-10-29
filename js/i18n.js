@@ -21,7 +21,6 @@
 
   // [英語, 中国語（繁体字）, 韓国語]
   const D = {
-    '#FairiesTower #gamedev #ゲーム制作': ['#FairiesTower #indiegame #gamedev', '#FairiesTower #獨立遊戲 #indiegame', '#FairiesTower #인디게임 #indiegame'],
     '🔴 配信中': ['🔴 LIVE now', '🔴 直播中', '🔴 방송 중'],
     '配信中': ['Live now', '直播中', '방송 중'],
     'タップすると、配信のページが開きます。': ['Tap to open the stream.', '點一下即可開啟直播頁面。', '탭하면 방송 페이지가 열려요.'],
