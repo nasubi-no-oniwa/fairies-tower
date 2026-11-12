@@ -4,6 +4,13 @@
 //   死ぬ：その場に屍が浮かぶ（同じ陣営で共有）。すぐ次の名前で昇りなおす
 //   越える：次の層へ。はじめて越えた人は碑に名前が残る。第100層の頂で、陣営の勝ち
 // =============================================
+
+// Xの投稿で引用するツイート（なすびのお庭の管理ページ quote/ で日本語・英語を貼りかえられる）
+var NQ=window.__nq||(window.__nq={q:{}});if(!NQ.f){NQ.f=1;fetch('https://ft-red-default-rtdb.asia-southeast1.firebasedatabase.app/xquote/g/fairies-tower.json').then(r=>r.json()).then(d=>{if(d&&typeof d==='object')NQ.q=d;}).catch(()=>{});}
+function quoteURL(){let l='';try{if(typeof lang==='string')l=lang;}catch(e){}if(!l)l=document.documentElement.lang||'ja';const u=(l.slice(0,2)==='ja'?NQ.q.ja:NQ.q.en)||'';return /^https:\/\/x\.com\/[A-Za-z0-9_]{1,15}\/status\/\d{5,25}$/.test(u)?u:'';}
+function xIntent(text,url){const q=quoteURL();return 'https://x.com/intent/post?text='+encodeURIComponent(q?text+'\n'+url:text)+'&url='+encodeURIComponent(q||url);}
+function xIntentT(text){const q=quoteURL();return 'https://x.com/intent/post?text='+encodeURIComponent(text)+(q?'&url='+encodeURIComponent(q):'');}
+function nqS(o){const q=quoteURL();if(!q||!o)return o;o=Object.assign({},o);o.text=(o.text||'')+(o.url?'\n'+o.url:'')+'\n'+q;delete o.url;return o;}
 (function (G) {
   const FT = G.FT, N = FT.NET, V = FT.V, SND = FT.SND, PW = FT.PHYS.PW, PH = FT.PHYS.PH, COLS = FT.COLS;
   FT.VER = '18';
@@ -650,7 +657,7 @@
     x.fillStyle = '#93aaa3'; x.font = `28px ${font}`; x.fillText(T('3つの陣営で、'), 620, 440); x.fillText(T('世界樹のてっぺんを目指す'), 620, 480); x.fillText('#FairiesTower', 620, 540);
   }
   function openShare(mode) { shareMode = mode || 'title'; drawShare($('shImg')); $('shText').value = shareText(); modal('oShare', 1); }
-  $('shPost').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText()), '_blank', 'noopener'); };
+  $('shPost').onclick = () => { open(xIntentT(shareText()), '_blank', 'noopener'); };
   $('shSave').onclick = () => { const a = document.createElement('a'); a.download = 'fairies-tower.png'; a.href = $('shImg').toDataURL('image/png'); a.click(); };
   $('shClose').onclick = () => { modal('oShare', 0); if (shareMode === 'game') S.paused = false; };
   $('bShare').onclick = () => openShare('title');

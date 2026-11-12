@@ -2,6 +2,13 @@
 //  画面の流れと見た目（はじまり・タイトルの景色・妖精えらび・一時停止・設定・層の帯・死と突破の演出）
 //  ゲームの中身（engine.js）にはさわらない。main.js が FT.UI に出したものだけを使う
 // =============================================
+
+// Xの投稿で引用するツイート（なすびのお庭の管理ページ quote/ で日本語・英語を貼りかえられる）
+var NQ=window.__nq||(window.__nq={q:{}});if(!NQ.f){NQ.f=1;fetch('https://ft-red-default-rtdb.asia-southeast1.firebasedatabase.app/xquote/g/fairies-tower.json').then(r=>r.json()).then(d=>{if(d&&typeof d==='object')NQ.q=d;}).catch(()=>{});}
+function quoteURL(){let l='';try{if(typeof lang==='string')l=lang;}catch(e){}if(!l)l=document.documentElement.lang||'ja';const u=(l.slice(0,2)==='ja'?NQ.q.ja:NQ.q.en)||'';return /^https:\/\/x\.com\/[A-Za-z0-9_]{1,15}\/status\/\d{5,25}$/.test(u)?u:'';}
+function xIntent(text,url){const q=quoteURL();return 'https://x.com/intent/post?text='+encodeURIComponent(q?text+'\n'+url:text)+'&url='+encodeURIComponent(q||url);}
+function xIntentT(text){const q=quoteURL();return 'https://x.com/intent/post?text='+encodeURIComponent(text)+(q?'&url='+encodeURIComponent(q):'');}
+function nqS(o){const q=quoteURL();if(!q||!o)return o;o=Object.assign({},o);o.text=(o.text||'')+(o.url?'\n'+o.url:'')+'\n'+q;delete o.url;return o;}
 (function (G) {
   const FT = G.FT, UI = FT.UI, ART = FT.ART, SND = FT.SND, S = UI.S, T = FT.T;
   const $ = id => document.getElementById(id);
@@ -289,9 +296,9 @@
     const ext = /mp4/.test(blob.type) ? 'mp4' : 'webm';
     const file = new File([blob], 'fairies-tower.' + ext, { type: blob.type });
     $('clipShare').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
-    $('clipShare').onclick = () => { navigator.share({ files: [file], text: T('この死にざまを見てくれ') + ' #FairiesTower ' + (FT_GAME() || '') }).catch(() => { }); };
+    $('clipShare').onclick = () => { navigator.share(nqS({ files: [file], text: T('この死にざまを見てくれ') + ' #FairiesTower ' + (FT_GAME() || '') })).catch(() => { }); };
     $('clipSave').onclick = () => { const a = document.createElement('a'); a.href = clipUrl; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); };
-    $('clipX').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(T('この死にざまを見てくれ') + '\n' + (FT_GAME() || '') + '\n#FairiesTower #ブラウザゲーム'), '_blank', 'noopener'); };
+    $('clipX').onclick = () => { open(xIntentT(T('この死にざまを見てくれ') + '\n' + (FT_GAME() || '') + '\n#FairiesTower #ブラウザゲーム'), '_blank', 'noopener'); };
     S.paused = true; UI.modal('oClip', 1);
   };
   const FT_GAME = () => G.FT_GAME_URL || location.href.split(/[?#]/)[0];
