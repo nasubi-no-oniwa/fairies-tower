@@ -291,7 +291,7 @@
     $('clipShare').hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
     $('clipShare').onclick = () => { navigator.share({ files: [file], text: T('この死にざまを見てくれ') + ' #FairiesTower ' + (FT_GAME() || '') }).catch(() => { }); };
     $('clipSave').onclick = () => { const a = document.createElement('a'); a.href = clipUrl; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); };
-    $('clipX').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(T('この死にざまを見てくれ') + '\n' + (FT_GAME() || '') + '\n#FairiesTower'), '_blank', 'noopener'); };
+    $('clipX').onclick = () => { open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(T('この死にざまを見てくれ') + '\n' + (FT_GAME() || '') + '\n#FairiesTower #ブラウザゲーム'), '_blank', 'noopener'); };
     S.paused = true; UI.modal('oClip', 1);
   };
   const FT_GAME = () => G.FT_GAME_URL || location.href.split(/[?#]/)[0];
